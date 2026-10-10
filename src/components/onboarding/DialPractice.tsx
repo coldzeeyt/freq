@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -111,7 +111,7 @@ export function DialPractice({ targets, onComplete, dialSize = 168 }: Props) {
             <Animated.View style={hintStyle}>
               <Ionicons name="sync-outline" size={16} color={colors.textDim} />
             </Animated.View>
-            <Text style={styles.hintText}>drag around the knob</Text>
+            <Text style={styles.hintText}>{Platform.OS === 'web' ? 'scroll, drag or click the knob' : 'drag or tap the knob'}</Text>
           </Animated.View>
         )}
       </View>

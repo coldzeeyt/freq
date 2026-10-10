@@ -172,7 +172,11 @@ export default function Welcome() {
           <Animated.View key="dial" entering={FadeInRight.duration(280)} exiting={FadeOutLeft.duration(200)} style={styles.page}>
             <Text style={styles.kicker}>03 · The dial</Text>
             <Text style={styles.h2}>Spin to tune.</Text>
-            <Text style={styles.lede}>Drag around the knob. Each click is a station. Let go to lock in.</Text>
+            <Text style={styles.lede}>
+              {Platform.OS === 'web'
+                ? 'Scroll over the knob, drag it, or click its right or left side. Each click is a station.'
+                : 'Drag around the knob, or tap its right or left side. Each click is a station.'}
+            </Text>
             <DialPractice targets={['comedy', 'pets']} onComplete={() => setDialDone(true)} />
             <Primary label={dialDone ? 'Next' : 'Skip practice'} ghost={!dialDone} onPress={next} />
           </Animated.View>
