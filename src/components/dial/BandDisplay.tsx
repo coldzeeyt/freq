@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown, FadeOutUp, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeOutUp, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
 import { FREQ_MAX, FREQ_MIN } from '@/data/stations';
 import { colors, fonts } from '@/theme';
 import type { Station } from '@/types/models';
@@ -8,13 +8,17 @@ import type { Station } from '@/types/models';
 interface Props {
   station: Station;
   tuning: boolean;
+  /** Feed mode: the printed band only slides open while the dial is turning. */
+  bandOnlyWhileTuning?: boolean;
+  /** Small control at the end of the readout row (e.g. mute). */
+  trailing?: React.ReactNode;
 }
 
 const MAJORS = [88, 92, 96, 100, 104, 108];
 const pos = (f: number) => (f - FREQ_MIN) / (FREQ_MAX - FREQ_MIN);
 
 /** The radio's glass: readout on top, a printed FM band and a needle below. */
-export function BandDisplay({ station, tuning }: Props) {
+export function BandDisplay({ station, tuning, bandOnlyWhileTuning, trailing }: Props) {
   const needle = useSharedValue(pos(station.frequency));
   const width = useSharedValue(0);
 
@@ -24,6 +28,14 @@ export function BandDisplay({ station, tuning }: Props) {
 
   const needleStyle = useAnimatedStyle(() => ({ transform: [{ translateX: needle.get() * width.get() }] }));
 
+  const open = useSharedValue(bandOnlyWhileTuning ? 0 : 1);
+  useEffect(() => {
+    if (!bandOnlyWhileTuning) return;
+    // Open right away; linger a moment after the dial settles, then fold away.
+    open.set(tuning ? withTiming(1, { duration: 180 }) : withDelay(900, withTiming(0, { duration: 260 })));
+  }, [tuning, bandOnlyWhileTuning, open]);
+  const bandWrap = useAnimatedStyle(() => ({ height: open.get() * 28, opacity: open.get() }));
+
   return (
     <View style={styles.wrap} accessibilityLabel={`Tuned to ${station.frequency} ${station.name}`}>
       <View style={styles.readout}>
@@ -32,7 +44,7 @@ export function BandDisplay({ station, tuning }: Props) {
             key={station.id}
             entering={FadeInDown.duration(160)}
             exiting={FadeOutUp.duration(120)}
-            style={styles.freq}
+            style={[styles.freq, bandOnlyWhileTuning && styles.freqCompact]}
           >
             {station.frequency.toFixed(1)}
           </Animated.Text>
@@ -42,9 +54,10 @@ export function BandDisplay({ station, tuning }: Props) {
           {station.name}
         </Animated.Text>
         <View style={styles.spacer} />
-        <Text style={[styles.status, tuning && styles.statusTuning]}>{tuning ? 'tuning' : 'on air'}</Text>
+        {trailing ?? <Text style={[styles.status, tuning && styles.statusTuning]}>{tuning ? 'tuning' : 'on air'}</Text>}
       </View>
 
+      <Animated.View style={[styles.bandWrap, bandWrap]}>
       <View style={styles.band} onLayout={(e) => width.set(e.nativeEvent.layout.width)}>
         {Array.from({ length: 41 }, (_, i) => {
           const f = 88 + i * 0.5;
@@ -63,15 +76,18 @@ export function BandDisplay({ station, tuning }: Props) {
         ))}
         <Animated.View style={[styles.needle, needleStyle]} />
       </View>
+      </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { gap: 6 },
-  readout: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  bandWrap: { overflow: 'visible' },
+  readout: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   digits: { height: 34, justifyContent: 'flex-end', overflow: 'hidden' },
   freq: { color: colors.text, fontFamily: fonts.narrowBold, fontSize: 32, lineHeight: 34, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
+  freqCompact: { fontSize: 26, lineHeight: 30 },
   unit: { color: colors.textFaint, fontFamily: fonts.mono, fontSize: 10 },
   name: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 15 },
   spacer: { flex: 1 },

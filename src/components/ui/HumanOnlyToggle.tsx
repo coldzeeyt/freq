@@ -21,7 +21,7 @@ export function HumanOnlyToggle({ value, onChange }: { value: boolean; onChange:
       accessibilityLabel="Human only"
       hitSlop={8}
     >
-      <Text style={[styles.label, value && styles.labelOn]}>Human only</Text>
+      <Text style={[styles.label, value && styles.labelOn]}>Human</Text>
       <Animated.View style={[styles.track, trackStyle]}>
         <Animated.View style={[styles.thumb, thumbStyle]} />
       </Animated.View>

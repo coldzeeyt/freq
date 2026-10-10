@@ -126,17 +126,17 @@ export default function Welcome() {
               Welcome to Freq
             </Animated.Text>
             <Animated.Text entering={FadeInDown.delay(500).duration(320)} style={styles.lede}>
-              Short videos, tuned like a radio. You choose the station. Nothing picks it for you.
+              Short videos, tuned like a radio.
             </Animated.Text>
             <View style={styles.features}>
-              <Feature delay={600} icon="disc-outline" title="Spin the dial" text="25 stations, from Comedy to Space. Turn the knob to change." />
+              <Feature delay={600} icon="disc-outline" title="Spin the dial" text="Turn the knob to change stations." />
               <Feature
                 delay={680}
                 icon="finger-print-outline"
                 title="Filter out AI"
-                text="Human only hides AI-generated and unverified videos on every station."
+                text="Human only hides AI and unverified videos."
               />
-              <Feature delay={760} icon="pricetags-outline" title="Tag it, it airs" text="Your tags put your post on the right station." />
+              <Feature delay={760} icon="pricetags-outline" title="Tag it, it airs" text="Tags put your post on the right station." />
             </View>
             <Animated.View entering={FadeInDown.delay(860)} style={styles.actions}>
               <Primary label="Get started" onPress={next} />
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   kicker: { color: colors.signal, fontFamily: fonts.mono, fontSize: 11, marginTop: 8 },
   lede: { color: colors.textDim, fontFamily: fonts.body, fontSize: 15, lineHeight: 22 },
   note: { color: colors.textFaint, fontFamily: fonts.body, fontSize: 13 },
-  features: { gap: 14, marginTop: 4 },
+  features: { gap: 18, marginTop: 10 },
   feature: { flexDirection: 'row', gap: 12 },
   featureText: { flex: 1, gap: 2 },
   featureTitle: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: 15 },

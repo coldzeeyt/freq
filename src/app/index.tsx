@@ -19,7 +19,7 @@ import { useStationFeed } from '@/state/useStationFeed';
 import { useTuner } from '@/state/useTuner';
 import { colors, fonts } from '@/theme';
 
-const DIAL = 92;
+const DIAL = 80;
 const DIAL_MARGIN = 10;
 
 export default function FeedScreen() {
@@ -87,8 +87,8 @@ export default function FeedScreen() {
         <StaticOverlay level={tuner.staticLevel} visible={tuner.staticVisible} />
 
         <LinearGradient
-          colors={['rgba(14,13,11,0.82)', 'rgba(14,13,11,0.4)', 'rgba(14,13,11,0)']}
-          style={[styles.topScrim, { height: insets.top + 140 }]}
+          colors={['rgba(14,13,11,0.6)', 'rgba(14,13,11,0.2)', 'rgba(14,13,11,0)']}
+          style={[styles.topScrim, { height: insets.top + 110 }]}
           pointerEvents="none"
         />
 
@@ -103,13 +103,13 @@ export default function FeedScreen() {
               <Pressable
                 onPress={() => {
                   haptics.tap();
-                  setMuted(!muted);
+                  router.push('/post');
                 }}
-                style={styles.iconButton}
+                style={styles.postButton}
                 hitSlop={8}
-                accessibilityLabel={muted ? 'Unmute' : 'Mute'}
+                accessibilityLabel="New post"
               >
-                <Ionicons name={muted ? 'volume-mute-outline' : 'volume-high-outline'} size={20} color={colors.text} />
+                <Ionicons name="add" size={20} color={colors.signalInk} />
               </Pressable>
               <Pressable
                 onPress={() => {
@@ -119,30 +119,33 @@ export default function FeedScreen() {
                 hitSlop={8}
                 accessibilityLabel="Your account"
               >
-                <Avatar creator={me} size={34} />
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  haptics.tap();
-                  router.push('/post');
-                }}
-                style={[styles.iconButton, styles.postButton]}
-                hitSlop={8}
-                accessibilityLabel="New post"
-              >
-                <Ionicons name="add" size={22} color={colors.signalInk} />
+                <Avatar creator={me} size={30} />
               </Pressable>
             </View>
           </View>
-          <BandDisplay station={displayed} tuning={tuner.tuning} />
-          {muted && Platform.OS === 'web' && (
-            <Animated.View entering={FadeIn.delay(800)}>
-              <Pressable onPress={() => setMuted(false)} style={styles.soundHint} accessibilityLabel="Turn sound on">
-                <Ionicons name="volume-mute-outline" size={12} color={colors.textDim} />
-                <Text style={styles.soundHintText}>tap for sound</Text>
+          <BandDisplay
+            station={displayed}
+            tuning={tuner.tuning}
+            bandOnlyWhileTuning
+            trailing={
+              <Pressable
+                onPress={() => {
+                  haptics.tap();
+                  setMuted(!muted);
+                }}
+                hitSlop={12}
+                style={styles.mute}
+                accessibilityLabel={muted ? 'Unmute' : 'Mute'}
+              >
+                {muted && Platform.OS === 'web' && (
+                  <Animated.Text entering={FadeIn.delay(800)} style={styles.soundHintText}>
+                    sound off
+                  </Animated.Text>
+                )}
+                <Ionicons name={muted ? 'volume-mute-outline' : 'volume-high-outline'} size={18} color={colors.textDim} />
               </Pressable>
-            </Animated.View>
-          )}
+            }
+          />
         </View>
 
         <View style={[styles.dial, { bottom: DIAL_MARGIN + insets.bottom }]}>
@@ -166,24 +169,21 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   stage: { flex: 1 },
   topScrim: { position: 'absolute', top: 0, left: 0, right: 0 },
-  top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, gap: 10 },
+  top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, gap: 4 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   brand: { flexDirection: 'row', alignItems: 'flex-start', gap: 3 },
   wordmark: { color: colors.text, fontFamily: fonts.heavy, fontSize: 24, letterSpacing: -1 },
   led: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.signal, marginTop: 6 },
-  topActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  iconButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  postButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.lineStrong,
-    backgroundColor: 'rgba(14,13,11,0.35)',
+    backgroundColor: colors.signal,
   },
-  postButton: { backgroundColor: colors.signal, borderColor: colors.signal },
-  soundHint: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start' },
-  soundHintText: { color: colors.textDim, fontFamily: fonts.mono, fontSize: 11 },
+  mute: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  soundHintText: { color: colors.textFaint, fontFamily: fonts.mono, fontSize: 10 },
   dial: { position: 'absolute', right: DIAL_MARGIN },
 });

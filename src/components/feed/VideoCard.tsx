@@ -92,8 +92,8 @@ export const VideoCard = memo(function VideoCard(props: Props) {
       {shouldLoad && <VideoSurface {...props} playing={isActive && !userPaused && !props.holdPlayback} />}
 
       <LinearGradient
-        colors={['rgba(14,13,11,0)', 'rgba(14,13,11,0.35)', 'rgba(14,13,11,0.85)']}
-        locations={[0.5, 0.72, 1]}
+        colors={['rgba(14,13,11,0)', 'rgba(14,13,11,0.25)', 'rgba(14,13,11,0.7)']}
+        locations={[0.6, 0.8, 1]}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
@@ -121,11 +121,6 @@ export const VideoCard = memo(function VideoCard(props: Props) {
       </GestureDetector>
 
       <View style={[styles.info, { right: infoRight, bottom: infoBottom }]} pointerEvents="none">
-        {showStation && (
-          <Text style={styles.stationTag}>
-            {station.frequency.toFixed(1)} {station.name}
-          </Text>
-        )}
         <View style={styles.creatorRow}>
           <Text style={styles.handle}>@{video.creator.handle}</Text>
           {isHumanMade(video) && <HumanBadge />}
@@ -135,9 +130,14 @@ export const VideoCard = memo(function VideoCard(props: Props) {
             {video.caption}
           </Text>
         )}
-        {video.tags.length > 0 && (
-          <Text style={styles.tags} numberOfLines={1}>
-            {video.tags.map((t) => `#${t}`).join('  ')}
+        {(showStation || video.tags.length > 0) && (
+          <Text style={styles.meta} numberOfLines={1}>
+            {showStation && <Text style={styles.metaStation}>{station.frequency.toFixed(1)} {station.name}</Text>}
+            {showStation && video.tags.length > 0 && '  ·  '}
+            {video.tags
+              .slice(0, 3)
+              .map((t) => `#${t}`)
+              .join(' ')}
           </Text>
         )}
       </View>
@@ -230,12 +230,12 @@ const styles = StyleSheet.create({
   errorText: { color: colors.textDim, fontFamily: fonts.mono, fontSize: 12 },
   pauseIcon: { position: 'absolute', top: '43%', alignSelf: 'center' },
   burst: { position: 'absolute', width: 96, height: 96 },
-  info: { position: 'absolute', left: 16, gap: 5 },
-  stationTag: { color: colors.signal, fontFamily: fonts.mono, fontSize: 11, ...shadow },
+  info: { position: 'absolute', left: 16, gap: 4 },
   creatorRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   handle: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: 15, ...shadow },
-  caption: { color: colors.text, fontFamily: fonts.body, fontSize: 14, lineHeight: 19, ...shadow },
-  tags: { color: colors.textDim, fontFamily: fonts.mono, fontSize: 11, ...shadow },
+  caption: { color: colors.text, fontFamily: fonts.body, fontSize: 14, lineHeight: 19, opacity: 0.92, ...shadow },
+  meta: { color: colors.textFaint, fontFamily: fonts.mono, fontSize: 11, ...shadow },
+  metaStation: { color: colors.textDim },
   rail: { position: 'absolute', right: 10 },
   progressTrack: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 2, backgroundColor: 'rgba(237,230,214,0.12)' },
   progressFill: { height: 2, backgroundColor: colors.text },
