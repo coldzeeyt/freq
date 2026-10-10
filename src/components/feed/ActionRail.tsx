@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
+import { useState } from 'react';
+import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { useToast } from '@/components/ui/Toast';
 import { getStation } from '@/data/stations';
 import { compactCount } from '@/lib/format';
@@ -12,7 +13,11 @@ import { colors, fonts } from '@/theme';
 import type { Video } from '@/types/models';
 
 export function ActionRail({ video }: { video: Video }) {
-  const { likedIds, toggleLike } = useFreq();
+  const { likedIds, toggleLike, me, isAdmin } = useFreq();
+  const [menu, setMenu] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const canDelete = !video.permanent && (video.creator.id === me.id || isAdmin);
+  const showMore = canDelete || video.permanent;
   const toast = useToast();
   const liked = likedIds.has(video.id);
   const heartScale = useSharedValue(1);
@@ -63,6 +68,57 @@ export function ActionRail({ video }: { video: Video }) {
         <Ionicons name="arrow-redo-outline" size={25} color={colors.text} style={styles.shadow} />
         <Text style={styles.count}>{compactCount(video.shares)}</Text>
       </Pressable>
+      {showMore && (
+        <View>
+          <Pressable
+            onPress={() => {
+              haptics.tap();
+              setMenu((m) => !m);
+              setConfirm(false);
+            }}
+            hitSlop={8}
+            style={styles.item}
+            accessibilityLabel="More"
+          >
+            <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} style={styles.shadow} />
+          </Pressable>
+          {menu && (
+            <Animated.View entering={FadeIn.duration(140)} exiting={FadeOut.duration(120)} style={styles.menu}>
+              {video.permanent ? (
+                <View style={styles.menuRow}>
+                  <Ionicons name="lock-closed" size={14} color={colors.textDim} />
+                  <Text style={styles.menuDim}>Locked in the Vault. Can’t be deleted.</Text>
+                </View>
+              ) : (
+                <Pressable
+                  onPress={async () => {
+                    if (!confirm) {
+                      haptics.warning();
+                      setConfirm(true);
+                      return;
+                    }
+                    try {
+                      await services.videos.deleteVideo(video.id);
+                      haptics.success();
+                      toast('Video deleted');
+                    } catch (e) {
+                      toast((e as Error).message);
+                    }
+                    setMenu(false);
+                  }}
+                  style={styles.menuRow}
+                  accessibilityLabel={confirm ? 'Confirm delete' : 'Delete video'}
+                >
+                  <Ionicons name="trash-outline" size={15} color={colors.danger} />
+                  <Text style={styles.menuDanger}>
+                    {confirm ? 'Tap again to delete' : video.creator.id === me.id ? 'Delete video' : 'Delete (admin)'}
+                  </Text>
+                </Pressable>
+              )}
+            </Animated.View>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -74,4 +130,18 @@ const styles = StyleSheet.create({
   item: { alignItems: 'center', gap: 2 },
   count: { color: colors.textDim, fontFamily: fonts.narrow, fontSize: 12, ...textShadow },
   shadow: textShadow,
+  menu: {
+    position: 'absolute',
+    right: 34,
+    bottom: -4,
+    minWidth: 190,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: 'rgba(23,22,19,0.97)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.lineStrong,
+  },
+  menuRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 10 },
+  menuDanger: { color: colors.danger, fontFamily: fonts.bodyMedium, fontSize: 14 },
+  menuDim: { flex: 1, color: colors.textDim, fontFamily: fonts.body, fontSize: 13 },
 });

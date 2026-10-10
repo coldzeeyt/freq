@@ -24,9 +24,11 @@ export default function PostScreen() {
   const { setStation, me } = useFreq();
   const toast = useToast();
   // "Record one now" on an empty feed opens straight into the camera.
-  const { start } = useLocalSearchParams<{ start?: string }>();
+  const { start, vault: vaultParam } = useLocalSearchParams<{ start?: string; vault?: string }>();
+  const vault = vaultParam === '1';
   const [step, setStep] = useState<Step>(start === 'record' ? { kind: 'record' } : { kind: 'choose' });
   const [posting, setPosting] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -41,16 +43,18 @@ export default function PostScreen() {
     setPosting(true);
     try {
       const uri = await services.media.persist(step.uri);
-      await services.videos.createVideo({ localUri: uri, stationId: target, tags, caption, origin: step.origin }, me);
+      setProgress(0);
+      await services.videos.createVideo({ localUri: uri, stationId: target, tags, caption, origin: step.origin, permanent: vault }, me, setProgress);
       haptics.success();
       setStation(target);
       const s = getStation(target);
-      toast(`On air at ${s.frequency.toFixed(1)} ${s.name}`);
+      toast(vault ? 'Locked in the Vault. Forever.' : `On air at ${s.frequency.toFixed(1)} ${s.name}`);
       close();
     } catch (e) {
       haptics.warning();
       toast(`Couldn’t post: ${(e as Error).message}`);
       setPosting(false);
+      setProgress(null);
     }
   };
 
@@ -66,7 +70,7 @@ export default function PostScreen() {
   if (step.kind === 'details') {
     return (
       <Animated.View entering={FadeIn.duration(200)} style={styles.fill}>
-        <PostDetails uri={step.uri} origin={step.origin} posting={posting} onBack={() => setStep({ kind: 'choose' })} onPost={post} />
+        <PostDetails uri={step.uri} origin={step.origin} posting={posting} progress={progress} vault={vault} onBack={() => setStep({ kind: 'choose' })} onPost={post} />
       </Animated.View>
     );
   }
@@ -81,10 +85,12 @@ export default function PostScreen() {
 
       <View style={styles.content}>
         <Animated.Text entering={FadeInDown.duration(280)} style={styles.title}>
-          Go on air
+          {vault ? 'Into the Vault' : 'Go on air'}
         </Animated.Text>
         <Animated.Text entering={FadeInDown.delay(40).duration(280)} style={styles.subtitle}>
-          Tag it and Freq finds the station. Record here and it’s marked human.
+          {vault
+            ? 'Whatever you lock in stays forever. No one can delete it: not you, not Freq.'
+            : 'Tag it and Freq finds the station. Record here and it’s marked human.'}
         </Animated.Text>
 
         <View style={styles.options}>

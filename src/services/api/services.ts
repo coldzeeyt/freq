@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import type { Account, BoardPost, Comment, Creator, Moment, OnAirToday, Video } from '@/types/models';
 import { emptyProfile } from '../ranking/profile';
 import type { AuthService, LikeService, MediaStore, OnAirService, SignalService, TalkService, VideoService } from '../types';
-import { api, ApiError, getToken, setToken } from './client';
+import { api, ApiError, getToken, setToken, uploadForm } from './client';
 
 type Session = { token: string; account: Account };
 
@@ -45,7 +45,7 @@ export function createApiVideos(): VideoService {
       return (await api<{ videos: Video[] }>(`/feed?${q}`)).videos;
     },
 
-    async createVideo(input, _author: Creator) {
+    async createVideo(input, _author: Creator, onProgress) {
       const form = new FormData();
       if (Platform.OS === 'web') {
         // Recordings and picks are blob:/data: URLs in the browser.
@@ -62,9 +62,25 @@ export function createApiVideos(): VideoService {
       form.append('tags', JSON.stringify(input.tags));
       form.append('caption', input.caption);
       form.append('origin', input.origin);
-      const { video } = await api<{ video: Video }>('/videos', { method: 'POST', body: form });
+      if (input.permanent) form.append('permanent', '1');
+      const { video } = await uploadForm<{ video: Video }>('/videos', form, onProgress);
+      onProgress?.(1);
       listeners.forEach((l) => l());
       return video;
+    },
+
+    async getVault() {
+      return (await api<{ videos: Video[] }>('/vault')).videos;
+    },
+    async listMine() {
+      return (await api<{ videos: Video[] }>('/me/videos')).videos;
+    },
+    async listAll() {
+      return (await api<{ videos: Video[] }>('/admin/videos')).videos;
+    },
+    async deleteVideo(id) {
+      await api(`/videos/${encodeURIComponent(id)}/delete`, { method: 'POST' });
+      listeners.forEach((l) => l());
     },
 
     subscribe(listener) {
@@ -158,6 +174,9 @@ export function createApiOnAir(): OnAirService {
     },
     async remove() {
       await api(`/onair/delete?tz=${tz()}`, { method: 'POST' });
+    },
+    async removeById(id) {
+      await api(`/onair/${encodeURIComponent(id)}/delete`, { method: 'POST' });
     },
   };
 }

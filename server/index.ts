@@ -8,7 +8,7 @@ import { applyEvent, emptyProfile, type TasteProfile } from '@/services/ranking/
 import { rankFeed } from '@/services/ranking/rank';
 import { isHumanMade } from '@/lib/human';
 import type { Creator, Video, WatchEvent } from '@/types/models';
-import { checkPassword, hashPassword, issueToken, readUser, requireUser, toAccount, type UserRow } from './auth';
+import { checkPassword, hashPassword, isAdmin, issueToken, readUser, requireUser, toAccount, type UserRow } from './auth';
 import { migrate, pool } from './db';
 import { createOnAir } from './onair';
 import { talk } from './talk';
@@ -61,6 +61,7 @@ interface VideoRow {
   likes: number;
   comments: number;
   shares: number;
+  permanent: boolean;
   created_at: Date;
 }
 
@@ -78,6 +79,7 @@ const toVideo = (r: VideoRow, base: string): Video => ({
   likes: r.likes,
   comments: r.comments,
   shares: r.shares,
+  permanent: r.permanent,
   createdAt: r.created_at.toISOString(),
 });
 
@@ -164,8 +166,15 @@ app.post('/api/auth/login', route(async (req, res) => {
 
 /** Deletes the account, its posts (and their files), likes and taste profile. */
 app.post('/api/auth/delete', requireUser, route(async (req, res) => {
+  // Vault videos outlive the account. They stay, but no longer carry your name.
+  await pool.query(
+    `update videos set user_id = null,
+       creator = jsonb_build_object('id', 'former', 'name', 'Former listener', 'handle', 'former.listener', 'verified', false, 'avatarColor', '#6E6A63')
+     where user_id = $1 and permanent`,
+    [req.user!.id],
+  );
   const { rows } = await pool.query<{ uri: string }>(
-    `select uri from videos where user_id = $1
+    `select uri from videos where user_id = $1 and not permanent
      union all select back_uri from moments where user_id = $1
      union all select front_uri from moments where user_id = $1`,
     [req.user!.id],
@@ -210,7 +219,8 @@ const upload = multer({
       cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
     },
   }),
-  limits: { fileSize: 150 * 1024 * 1024, files: 1 },
+  // Phone videos are big (a minute of 4K is several hundred MB).
+  limits: { fileSize: 500 * 1024 * 1024, files: 1 },
   fileFilter: (_req, file, cb) => cb(null, /^video\//.test(file.mimetype) || file.mimetype === 'application/octet-stream'),
 });
 
@@ -230,21 +240,46 @@ app.post('/api/videos', requireUser, upload.single('video'), route(async (req, r
   // NOTE: the client says whether this came from the in-app camera. A determined user could fake it;
   // a stricter version would issue one-time recording tokens to the camera screen.
   const videoOrigin = req.body.origin === 'camera' ? 'camera' : 'upload';
+  const permanent = req.body.permanent === '1' || req.body.permanent === 'true';
 
   const id = `v-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   const { rows } = await pool.query<VideoRow>(
-    `insert into videos (id, user_id, creator, uri, station_id, tags, caption, origin)
-     values ($1, $2, $3, $4, $5, $6, $7, $8) returning *`,
-    [id, req.user!.id, creatorFor(req.user!), `/media/${file.filename}`, stationId, [...new Set(tags)], caption, videoOrigin],
+    `insert into videos (id, user_id, creator, uri, station_id, tags, caption, origin, permanent)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *`,
+    [id, req.user!.id, creatorFor(req.user!), `/media/${file.filename}`, stationId, [...new Set(tags)], caption, videoOrigin, permanent],
   );
   res.status(201).json({ video: toVideo(rows[0], origin(req)) });
 }));
 
+/** The Vault: permanent videos, newest first. */
+app.get('/api/vault', route(async (req, res) => {
+  const { rows } = await pool.query<VideoRow>('select * from videos where permanent order by created_at desc limit 300');
+  res.json({ videos: rows.map((r) => toVideo(r, origin(req))) });
+}));
+
+/** Your own videos, newest first (for the You tab). */
+app.get('/api/me/videos', requireUser, route(async (req, res) => {
+  const { rows } = await pool.query<VideoRow>('select * from videos where user_id = $1 order by created_at desc', [req.user!.id]);
+  res.json({ videos: rows.map((r) => toVideo(r, origin(req))) });
+}));
+
+/** Everyone's videos, newest first. Admins only. */
+app.get('/api/admin/videos', requireUser, route(async (req, res) => {
+  if (!isAdmin(req.user)) return void res.status(403).json({ error: 'Admins only.' });
+  const { rows } = await pool.query<VideoRow>('select * from videos order by created_at desc limit 500');
+  res.json({ videos: rows.map((r) => toVideo(r, origin(req))) });
+}));
+
 app.post('/api/videos/:id/delete', requireUser, route(async (req, res) => {
-  const { rows } = await pool.query<{ uri: string }>('delete from videos where id = $1 and user_id = $2 returning uri', [
-    String(req.params.id),
-    req.user!.id,
-  ]);
+  const vault = await pool.query('select 1 from videos where id = $1 and permanent', [String(req.params.id)]);
+  if (vault.rowCount) {
+    return void res.status(403).json({ error: 'That one’s in the Vault. It can’t be deleted, by anyone.' });
+  }
+  // Owners can delete their own videos; admins can delete any (except the Vault).
+  const { rows } = await pool.query<{ uri: string }>(
+    'delete from videos where id = $1 and (user_id = $2 or $3) and not permanent returning uri',
+    [String(req.params.id), req.user!.id, isAdmin(req.user)],
+  );
   if (!rows[0]) return void res.status(404).json({ error: 'That isn’t your video.' });
   removeMedia(rows[0].uri);
   await pool.query(`delete from comments where target_type = 'video' and target_id = $1`, [String(req.params.id)]);
@@ -351,7 +386,7 @@ if (fs.existsSync(WEB_DIR)) {
 app.use((err: Error, _req: Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
   const tooBig = (err as { code?: string }).code === 'LIMIT_FILE_SIZE';
-  res.status(tooBig ? 413 : 500).json({ error: tooBig ? 'That video is too big (150 MB max).' : 'Something went wrong on our end.' });
+  res.status(tooBig ? 413 : 500).json({ error: tooBig ? 'That video is too big (500 MB max). Try a shorter clip or record in Freq.' : 'Something went wrong on our end.' });
 });
 
 migrate()

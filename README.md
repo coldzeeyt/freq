@@ -33,6 +33,9 @@ Checks: `npm run typecheck` and `npm run lint`.
 | Account page: profile, Test lab, replay welcome, log out | `src/app/me.tsx` |
 | Human Only toggle + Human badge | `src/lib/human.ts`, `src/components/ui/HumanOnlyToggle.tsx` |
 | Like / share, creator, caption | `src/components/feed/ActionRail.tsx` |
+| Tabs: swipe left/right (or tap) between Radio, Talk, On Air, Vault and You. Pull down on the first video to refresh | `src/app/index.tsx`, `src/components/home/` |
+| The Vault: videos locked in here are permanent. Nobody can delete them, admins included. Posting needs a press-and-hold | `src/components/vault/`, `permanent` column in `server/` |
+| You: your profile, your videos with Delete, settings. Admins (`ADMIN_EMAILS` on the server) also see Everyone and can delete any non-Vault video, post, comment or On Air photo | `src/components/you/` |
 | On Air: once a day, at a random local time, everyone gets 2 minutes to post a back-and-front camera photo (BeReal-style). You only see others' after posting yours; late posts are tagged | `src/app/onair/`, `src/components/onair/`, `src/lib/onAir.ts`, `server/onair.ts` |
 | Talk: a Reddit-style board per station (posts, up/down votes, Hot/New/Top) and threaded comments on posts and videos | `src/app/talk/`, `src/app/comments/`, `src/components/talk/`, `server/talk.ts` |
 | Post: record with the in-app camera or upload, pick a station, add a caption | `src/app/post.tsx`, `src/components/post/` |

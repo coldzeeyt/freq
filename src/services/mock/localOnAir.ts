@@ -32,6 +32,9 @@ export function createLocalOnAir(me: () => Promise<Creator>): OnAirService {
       await writeJSON(KEY, [...all.filter((x) => x.day !== m.day), moment]);
       return moment;
     },
+    async removeById(id) {
+      await writeJSON(KEY, (await readJSON<Moment[]>(KEY, [])).filter((x) => x.id !== id));
+    },
     async remove() {
       const day = todaysMoment(Date.now(), tz()).day;
       await writeJSON(KEY, (await readJSON<Moment[]>(KEY, [])).filter((x) => x.day !== day));

@@ -21,6 +21,7 @@ import { haptics } from '@/lib/haptics';
 import { hashtagsIn, routeTags } from '@/lib/tagRouting';
 import { colors, fonts, noWebOutline, radius } from '@/theme';
 import type { StationId, VideoOrigin } from '@/types/models';
+import { HoldToLock } from '@/components/vault/HoldToLock';
 import { StationPicker } from './StationPicker';
 import { TagInput } from './TagInput';
 
@@ -30,11 +31,15 @@ interface Props {
   uri: string;
   origin: VideoOrigin;
   posting: boolean;
+  /** 0..1 while the file uploads. */
+  progress: number | null;
+  /** Posting into the Vault (permanent). */
+  vault?: boolean;
   onBack: () => void;
   onPost: (stationId: StationId, tags: string[], caption: string) => void;
 }
 
-export function PostDetails({ uri, origin, posting, onBack, onPost }: Props) {
+export function PostDetails({ uri, origin, posting, progress, vault, onBack, onPost }: Props) {
   const insets = useSafeAreaInsets();
   const [caption, setCaption] = useState('');
   const [tags, setTags] = useState<string[]>([]);
@@ -55,6 +60,9 @@ export function PostDetails({ uri, origin, posting, onBack, onPost }: Props) {
   const target = override ?? auto;
   const station = target ? getStation(target) : null;
   const matched = matches.find((m) => m.station.id === target)?.matched ?? [];
+  // With no tag match there's nothing to guess from, so show the stations right away.
+  const showPicker = picking || !target;
+  const [nudge, setNudge] = useState(false);
 
   return (
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -121,7 +129,9 @@ export function PostDetails({ uri, origin, posting, onBack, onPost }: Props) {
               </View>
             </Animated.View>
           ) : (
-            <Text style={styles.routeEmpty}>Add a tag and Freq will find the station for it.</Text>
+            <Text style={[styles.routeEmpty, nudge && styles.routeNudge]}>
+              Pick a station below, or add a tag and Freq will pick one for you.
+            </Text>
           )}
 
           {matches.length > 1 && !picking && (
@@ -145,10 +155,12 @@ export function PostDetails({ uri, origin, posting, onBack, onPost }: Props) {
             </View>
           )}
 
-          <Pressable onPress={() => setPicking((p) => !p)} hitSlop={6} style={styles.chooseBtn}>
-            <Text style={styles.chooseText}>{picking ? 'Done' : 'Choose a different station'}</Text>
-          </Pressable>
-          {picking && (
+          {!!target && (
+            <Pressable onPress={() => setPicking((p) => !p)} hitSlop={6} style={styles.chooseBtn}>
+              <Text style={styles.chooseText}>{picking ? 'Done' : 'Choose a different station'}</Text>
+            </Pressable>
+          )}
+          {showPicker && (
             <Animated.View entering={FadeIn}>
               <StationPicker
                 value={target}
@@ -163,21 +175,59 @@ export function PostDetails({ uri, origin, posting, onBack, onPost }: Props) {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+        {posting && progress !== null && (
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
+          </View>
+        )}
+        {vault && (
+          <View style={styles.vaultNote}>
+            <Ionicons name="lock-closed" size={14} color={colors.text} />
+            <Text style={styles.vaultText}>This goes in the Vault. It can never be deleted, by you or anyone at Freq.</Text>
+          </View>
+        )}
+        {vault ? (
+          <HoldToLock
+            busy={posting}
+            label={station ? `Hold to lock into ${station.name} forever` : 'Pick a station, then hold'}
+            onLocked={() => {
+              if (!target) {
+                haptics.warning();
+                setNudge(true);
+                return;
+              }
+              onPost(target, allTags, caption);
+            }}
+          />
+        ) : (
         <Pressable
-          onPress={() => target && onPost(target, allTags, caption)}
-          disabled={!target || posting}
-          style={({ pressed }) => [styles.postBtn, (!target || posting) && styles.postDisabled, pressed && { transform: [{ scale: 0.98 }] }]}
+          onPress={() => {
+            if (posting) return;
+            if (!target) {
+              haptics.warning();
+              setNudge(true);
+              return;
+            }
+            onPost(target, allTags, caption);
+          }}
+          style={({ pressed }) => [styles.postBtn, posting && styles.postDisabled, pressed && { transform: [{ scale: 0.98 }] }]}
           accessibilityRole="button"
           accessibilityLabel="Go on air"
         >
           {posting ? (
-            <ActivityIndicator color={colors.signalInk} />
+            <View style={styles.postingRow}>
+              <ActivityIndicator color={colors.signalInk} />
+              <Text style={styles.postText}>
+                {progress !== null && progress < 1 ? `Uploading ${Math.round(progress * 100)}%` : 'Going on air…'}
+              </Text>
+            </View>
           ) : (
             <Text style={styles.postText}>
-              {station ? `Go on air · ${station.frequency.toFixed(1)} ${station.name}` : 'Add a tag to continue'}
+              {station ? `Go on air · ${station.frequency.toFixed(1)} ${station.name}` : 'Pick a station to go on air'}
             </Text>
           )}
         </Pressable>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -234,6 +284,12 @@ const styles = StyleSheet.create({
   routeName: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: 18 },
   routeWhy: { color: colors.textFaint, fontFamily: fonts.mono, fontSize: 11 },
   routeEmpty: { color: colors.textDim, fontFamily: fonts.body, fontSize: 14 },
+  routeNudge: { color: colors.signal },
+  vaultNote: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  vaultText: { flex: 1, color: colors.textDim, fontFamily: fonts.body, fontSize: 12, lineHeight: 17 },
+  postingRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  progressTrack: { height: 3, borderRadius: 2, backgroundColor: colors.line, marginBottom: 10, overflow: 'hidden' },
+  progressFill: { height: 3, backgroundColor: colors.signal },
   altRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   altLabel: { color: colors.textFaint, fontFamily: fonts.mono, fontSize: 11 },
   alt: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.sm, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.lineStrong },

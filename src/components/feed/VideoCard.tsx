@@ -23,6 +23,7 @@ import { useFreq } from '@/state/FreqProvider';
 import { colors, fonts } from '@/theme';
 import type { Video } from '@/types/models';
 import { ActionRail } from './ActionRail';
+import { VaultBadge } from '@/components/vault/VaultBadge';
 import { HumanBadge } from './HumanBadge';
 
 interface Props {
@@ -124,6 +125,7 @@ export const VideoCard = memo(function VideoCard(props: Props) {
         <View style={styles.creatorRow}>
           <Text style={styles.handle}>@{video.creator.handle}</Text>
           {isHumanMade(video) && <HumanBadge />}
+          {video.permanent && <VaultBadge />}
         </View>
         {!!video.caption && (
           <Text style={styles.caption} numberOfLines={2}>

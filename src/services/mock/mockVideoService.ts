@@ -39,6 +39,7 @@ export function createMockVideoService(signals: SignalService): VideoService {
         caption: input.caption.trim(),
         creator: author,
         origin: input.origin,
+        permanent: !!input.permanent,
         views: 0,
         likes: 0,
         comments: 0,
@@ -49,6 +50,22 @@ export function createMockVideoService(signals: SignalService): VideoService {
       await writeJSON(POSTS_KEY, myPosts);
       listeners.forEach((l) => l());
       return video;
+    },
+
+    async getVault() {
+      return (await loadMyPosts()).filter((v) => v.permanent);
+    },
+    async listMine() {
+      return loadMyPosts();
+    },
+    async listAll() {
+      return loadMyPosts();
+    },
+    async deleteVideo(id) {
+      if ((await loadMyPosts()).some((v) => v.id === id && v.permanent)) throw new Error('That one’s in the Vault. It can’t be deleted.');
+      myPosts = (await loadMyPosts()).filter((v) => v.id !== id);
+      await writeJSON(POSTS_KEY, myPosts);
+      listeners.forEach((l) => l());
     },
 
     subscribe(listener) {

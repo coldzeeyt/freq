@@ -39,6 +39,8 @@ create table if not exists videos (
   created_at timestamptz not null default now()
 );
 create index if not exists videos_station_idx on videos (station_id);
+-- Vault videos are permanent: no one can delete them, admins included.
+alter table videos add column if not exists permanent boolean not null default false;
 
 create table if not exists likes (
   user_id uuid not null references users(id) on delete cascade,

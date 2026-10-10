@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { POSTABLE_STATIONS, STATIONS } from '@/data/stations';
 import { hotScore } from '@/lib/hot';
 import type { BoardPost, BoardSort, Comment, Creator, Vote } from '@/types/models';
-import { requireUser, type UserRow } from './auth';
+import { isAdmin, requireUser, type UserRow } from './auth';
 import { pool } from './db';
 
 const known = new Set(STATIONS.map((s) => s.id));
@@ -129,7 +129,7 @@ talk.get('/posts/:id', route(async (req, res) => {
 talk.post('/posts/:id/delete', requireUser, route(async (req, res) => {
   const id = String(req.params.id);
   if (!UUID.test(id)) return void res.status(404).json({ error: 'That post is gone.' });
-  const { rowCount } = await pool.query('delete from posts where id = $1 and user_id = $2', [id, req.user!.id]);
+  const { rowCount } = await pool.query('delete from posts where id = $1 and (user_id = $2 or $3)', [id, req.user!.id, isAdmin(req.user)]);
   if (!rowCount) return void res.status(404).json({ error: 'That isn’t your post.' });
   await pool.query(`delete from comments where target_type = 'post' and target_id = $1`, [id]);
   res.json({ ok: true });
@@ -208,8 +208,8 @@ talk.post('/comments/:id/delete', requireUser, route(async (req, res) => {
   const id = String(req.params.id);
   const { rows } = UUID.test(id)
     ? await pool.query<{ target_type: string; target_id: string }>(
-        `update comments set deleted = true, body = '' where id = $1 and user_id = $2 and not deleted returning target_type, target_id`,
-        [id, req.user!.id],
+        `update comments set deleted = true, body = '' where id = $1 and (user_id = $2 or $3) and not deleted returning target_type, target_id`,
+        [id, req.user!.id, isAdmin(req.user)],
       )
     : { rows: [] };
   if (!rows[0]) return void res.status(404).json({ error: 'That isn’t your comment.' });

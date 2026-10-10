@@ -4,7 +4,7 @@ import path from 'node:path';
 import multer from 'multer';
 import { phaseOf, todaysMoment } from '@/lib/onAir';
 import type { Creator, Moment, OnAirToday } from '@/types/models';
-import { requireUser } from './auth';
+import { isAdmin, requireUser } from './auth';
 import { pool } from './db';
 
 interface MomentRow {
@@ -123,6 +123,19 @@ export function createOnAir(mediaDir: string, origin: (req: Request) => string, 
       removeMedia(r.back_uri);
       removeMedia(r.front_uri);
     });
+    res.json({ ok: true });
+  }));
+
+  router.post('/onair/:id/delete', requireUser, route(async (req, res) => {
+    const id = String(req.params.id);
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return void res.status(404).json({ error: 'Not found.' });
+    const { rows } = await pool.query<{ back_uri: string; front_uri: string }>(
+      'delete from moments where id = $1 and (user_id = $2 or $3) returning back_uri, front_uri',
+      [id, req.user!.id, isAdmin(req.user)],
+    );
+    if (!rows[0]) return void res.status(404).json({ error: 'That isn’t yours.' });
+    removeMedia(rows[0].back_uri);
+    removeMedia(rows[0].front_uri);
     res.json({ ok: true });
   }));
 

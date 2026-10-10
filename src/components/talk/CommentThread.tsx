@@ -148,11 +148,11 @@ function CommentNode({
   onReply: (c: Comment) => void;
   onDelete: (c: Comment) => void;
 }) {
-  const { me } = useFreq();
+  const { me, isAdmin } = useFreq();
   const toast = useToast();
   const [collapsed, setCollapsed] = useState(false);
   const c = node.comment;
-  const mine = !c.deleted && c.author?.id === me.id;
+  const mine = !c.deleted && (c.author?.id === me.id || isAdmin);
 
   return (
     <Animated.View

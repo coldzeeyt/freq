@@ -39,6 +39,8 @@ export interface Video {
   likes: number;
   comments: number;
   shares: number;
+  /** In the Vault: can never be deleted, by anyone. */
+  permanent?: boolean;
   createdAt: string;
 }
 
@@ -48,6 +50,8 @@ export interface NewVideoInput {
   tags: string[];
   caption: string;
   origin: VideoOrigin;
+  /** Lock it in the Vault forever. */
+  permanent?: boolean;
 }
 
 export interface Preferences {
@@ -62,6 +66,8 @@ export interface Account {
   handle: string;
   email: string;
   createdAt: string;
+  /** Freq staff: can delete anyone's videos, posts, comments and On Air photos. */
+  isAdmin?: boolean;
 }
 
 export interface NewAccountInput {

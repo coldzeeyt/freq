@@ -18,7 +18,7 @@ import type { BoardPost, Comment } from '@/types/models';
 export default function PostScreen() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
-  const { me } = useFreq();
+  const { me, isAdmin } = useFreq();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [post, setPost] = useState<BoardPost | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -84,7 +84,7 @@ export default function PostScreen() {
               {!!post.body && <Text style={styles.body}>{post.body}</Text>}
               <View style={styles.postActions}>
                 <VoteControl target={{ type: 'post', id: post.id }} score={post.score} myVote={post.myVote} direction="row" onError={toast} />
-                {post.author.id === me.id && (
+                {(post.author.id === me.id || isAdmin) && (
                   <Pressable hitSlop={8} onPress={onDelete} accessibilityLabel="Delete post">
                     <Text style={[styles.delete, confirmDelete && styles.deleteConfirm]}>
                       {confirmDelete ? 'Tap again to delete' : 'Delete'}

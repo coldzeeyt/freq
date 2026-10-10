@@ -16,6 +16,7 @@ interface FreqContextValue extends Preferences {
   account: Account | null;
   /** The signed-in user as a video author. */
   me: Creator;
+  isAdmin: boolean;
   createAccount: (input: NewAccountInput) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -91,6 +92,7 @@ export function FreqProvider({ children }: { children: React.ReactNode }) {
       hydrated,
       account,
       me,
+      isAdmin: !!account?.isAdmin,
       createAccount: async (input) => {
         setAccount(await services.auth.createAccount(input));
         setLikedIds(new Set());

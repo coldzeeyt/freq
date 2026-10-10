@@ -59,3 +59,29 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
   if (!res.ok) throw new ApiError((data as { error?: string }).error ?? `Request failed (${res.status})`, res.status);
   return data as T;
 }
+
+/** Multipart upload with progress (fetch can't report upload progress; XHR can, on web and native). */
+export async function uploadForm<T>(path: string, form: FormData, onProgress?: (fraction: number) => void): Promise<T> {
+  const t = await getToken();
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE}/api${path}`);
+    xhr.setRequestHeader('X-Freq-Session', SESSION);
+    if (t) xhr.setRequestHeader('Authorization', `Bearer ${t}`);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total);
+    };
+    xhr.onload = () => {
+      let data: { error?: string } = {};
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch {}
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data as T);
+      else reject(new ApiError(data.error ?? (xhr.status === 413 ? 'That video is too big.' : `Upload failed (${xhr.status})`), xhr.status));
+    };
+    xhr.onerror = () => reject(new ApiError('Upload failed. Check your connection and try again.', 0));
+    xhr.ontimeout = () => reject(new ApiError('Upload timed out. Try a shorter video or better signal.', 0));
+    xhr.timeout = 10 * 60_000;
+    xhr.send(form);
+  });
+}

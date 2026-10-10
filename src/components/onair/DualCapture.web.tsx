@@ -9,10 +9,10 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function openCamera(facingMode: 'environment' | 'user') {
   try {
-    return await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: facingMode }, width: { ideal: 1080 } }, audio: false });
+    return await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: facingMode }, width: { ideal: 1280 } }, audio: false });
   } catch {
     // Laptops usually have one camera: use whatever there is.
-    return navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1080 } }, audio: false });
+    return navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 } }, audio: false });
   }
 }
 
@@ -95,23 +95,29 @@ export function DualCapture({ onCaptured, onCancel }: DualCaptureProps) {
 
   return (
     <View style={styles.fill}>
-      {createElement('video', {
-        ref: videoEl,
-        autoPlay: true,
-        muted: true,
-        playsInline: true,
-        style: {
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          transform: facing === 'user' ? 'scaleX(-1)' : undefined,
-        },
-      })}
+      {/* Preview at exactly the 3:4 frame that gets saved, so nothing is cropped by surprise. */}
+      <View style={styles.frameWrap} pointerEvents="none">
+        {createElement('video', {
+          ref: videoEl,
+          autoPlay: true,
+          muted: true,
+          playsInline: true,
+          style: {
+            width: '100%',
+            aspectRatio: '3 / 4',
+            maxHeight: '100%',
+            objectFit: 'cover',
+            borderRadius: 18,
+            transform: facing === 'user' ? 'scaleX(-1)' : undefined,
+          },
+        })}
+      </View>
       <CaptureChrome stage={stage} ready={ready} onShutter={shoot} onCancel={onCancel} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({ fill: { flex: 1, backgroundColor: '#000' } });
+const styles = StyleSheet.create({
+  fill: { flex: 1, backgroundColor: '#000' },
+  frameWrap: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+});

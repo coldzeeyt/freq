@@ -16,7 +16,10 @@ import { haptics } from '@/lib/haptics';
 import { services } from '@/services';
 import { colors, fonts } from '@/theme';
 import type { Video } from '@/types/models';
+import { usePullToRefresh } from './PullToRefresh';
 import { VideoCard } from './VideoCard';
+
+const noop = () => {};
 
 interface Props {
   videos: Video[] | null;
@@ -31,10 +34,13 @@ interface Props {
   emptyTitle: string;
   emptyMessage: string;
   emptyAction?: { label: string; icon: keyof typeof Ionicons.glyphMap; onPress: () => void };
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 export function VideoFeed(props: Props) {
   const { videos, feedKey, muted, holdPlayback, railBottom, infoRight, infoBottom, showStation, emptyTitle, emptyMessage, emptyAction } = props;
+  const { refreshing = false, onRefresh } = props;
   const [height, setHeight] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<FlatList<Video>>(null);
@@ -86,6 +92,14 @@ export function VideoFeed(props: Props) {
     },
     [height],
   );
+
+  const getNode = useCallback(
+    () => (listRef.current?.getScrollableNode?.() as unknown as HTMLElement | null) ?? null,
+    // Re-attach when the list remounts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [feedKey, videos?.length],
+  );
+  const pull = usePullToRefresh(getNode, !!onRefresh && activeIndex === 0, refreshing, onRefresh ?? noop);
 
   // Arrow keys / j,k for desktop browsers.
   useEffect(() => {
@@ -161,7 +175,9 @@ export function VideoFeed(props: Props) {
             initialNumToRender={2}
             maxToRenderPerBatch={2}
             removeClippedSubviews={Platform.OS !== 'web'}
+            refreshControl={pull.nativeRefreshControl}
           />
+          {pull.indicator}
         </Animated.View>
       )}
     </View>

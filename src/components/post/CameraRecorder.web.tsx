@@ -21,7 +21,12 @@ export function CameraRecorder({ onRecorded, onCancel }: CameraRecorderProps) {
     let cancelled = false;
     if (!supported) return;
     navigator.mediaDevices
-      .getUserMedia({ video: { facingMode: facing, width: { ideal: 720 }, height: { ideal: 1280 } }, audio: true })
+      .getUserMedia({
+        // Ask only for a camera and a sensible resolution. Forcing a portrait size made phones
+        // pick a cropped (zoomed-in) sensor mode.
+        video: { facingMode: facing, width: { ideal: 1280 } },
+        audio: true,
+      })
       .then((s) => {
         if (cancelled) return s.getTracks().forEach((t) => t.stop());
         stream.current = s;
@@ -87,7 +92,9 @@ export function CameraRecorder({ onRecorded, onCancel }: CameraRecorderProps) {
           inset: 0,
           width: '100%',
           height: '100%',
-          objectFit: 'cover',
+          // Show the whole camera picture (no crop-zoom); what you see is what's recorded.
+          objectFit: 'contain',
+          backgroundColor: '#000',
           transform: facing === 'user' ? 'scaleX(-1)' : undefined,
         },
       })}

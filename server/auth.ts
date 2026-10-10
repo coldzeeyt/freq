@@ -19,12 +19,22 @@ export interface UserRow {
   created_at: Date;
 }
 
+// Admins are configured on the server: ADMIN_EMAILS=a@x.com,b@y.com
+const ADMINS = new Set(
+  (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+);
+export const isAdmin = (u?: UserRow | null) => !!u && ADMINS.has(u.email.toLowerCase());
+
 export const toAccount = (u: UserRow): Account => ({
   id: u.id,
   name: u.name,
   handle: u.handle,
   email: u.email,
   createdAt: u.created_at.toISOString(),
+  isAdmin: isAdmin(u),
 });
 
 export const hashPassword = (pw: string) => bcrypt.hash(pw, 10);

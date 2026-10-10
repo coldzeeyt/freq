@@ -26,7 +26,15 @@ import type { TasteProfile } from './ranking/profile';
 export interface VideoService {
   /** A ranked feed for one station. */
   getFeed(query: { stationId: StationId; humanOnly: boolean }): Promise<Video[]>;
-  createVideo(input: NewVideoInput, author: Creator): Promise<Video>;
+  createVideo(input: NewVideoInput, author: Creator, onProgress?: (fraction: number) => void): Promise<Video>;
+  /** The Vault: permanent videos, newest first. */
+  getVault(): Promise<Video[]>;
+  /** Your own posts, newest first. */
+  listMine(): Promise<Video[]>;
+  /** Everyone's posts (admins only). */
+  listAll(): Promise<Video[]>;
+  /** Delete one of your videos (or anyone's, for admins). */
+  deleteVideo(id: string): Promise<void>;
   /** Fires whenever the catalogue changes (e.g. after a post). */
   subscribe(listener: () => void): () => void;
 }
@@ -66,6 +74,8 @@ export interface OnAirService {
   post(backUri: string, frontUri: string, caption: string): Promise<Moment>;
   /** Removes today's moment so you can take it again. */
   remove(): Promise<void>;
+  /** Removes a specific moment (yours, or anyone's for admins). */
+  removeById(id: string): Promise<void>;
 }
 
 /** Collects interactions and exposes the taste profile the ranking uses. */
