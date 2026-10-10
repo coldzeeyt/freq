@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -16,7 +16,8 @@ import { BandDisplay } from '@/components/dial/BandDisplay';
 import { StaticOverlay } from '@/components/dial/StaticOverlay';
 import { TuningDial } from '@/components/dial/TuningDial';
 import { getStation, STATIONS, stationIndex } from '@/data/stations';
-import { haptics } from '@/lib/haptics';
+import { isTouchScreen } from '@/lib/device';
+import { haptics, hapticSupport } from '@/lib/haptics';
 import { useTuner } from '@/state/useTuner';
 import { colors, fonts, radius } from '@/theme';
 import type { StationId } from '@/types/models';
@@ -106,12 +107,15 @@ export function DialPractice({ targets, onComplete, dialSize = 168 }: Props) {
           onDetent={tuner.onDetent}
           onTuneEnd={tuner.onTuneEnd}
         />
+        {hapticSupport().level === 'none' && (
+          <Text style={styles.noHaptics}>Computers can’t vibrate. On your phone you’ll feel each click.</Text>
+        )}
         {!touched && (
           <Animated.View entering={FadeIn.delay(600)} exiting={FadeOut} style={styles.hint} pointerEvents="none">
             <Animated.View style={hintStyle}>
               <Ionicons name="sync-outline" size={16} color={colors.textDim} />
             </Animated.View>
-            <Text style={styles.hintText}>{Platform.OS === 'web' ? 'scroll, drag or click the knob' : 'drag or tap the knob'}</Text>
+            <Text style={styles.hintText}>{isTouchScreen ? 'drag or tap the knob' : 'scroll, drag or click the knob'}</Text>
           </Animated.View>
         )}
       </View>
@@ -137,5 +141,6 @@ const styles = StyleSheet.create({
   goalStation: { color: colors.signal, fontFamily: fonts.bodyBold },
   dialArea: { alignItems: 'center', gap: 10 },
   hint: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  noHaptics: { color: colors.textFaint, fontFamily: fonts.body, fontSize: 12, textAlign: 'center' },
   hintText: { color: colors.textDim, fontFamily: fonts.mono, fontSize: 11 },
 });

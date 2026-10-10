@@ -2,19 +2,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DialPractice } from '@/components/onboarding/DialPractice';
 import { HumanFilterDemo } from '@/components/onboarding/HumanFilterDemo';
 import { POSTABLE_STATIONS } from '@/data/stations';
-import { haptics } from '@/lib/haptics';
+import { haptics, hapticSupport, type HapticKind } from '@/lib/haptics';
 import { useTuningSounds } from '@/lib/useTuningSounds';
 import { colors, fonts, radius } from '@/theme';
 import type { StationId } from '@/types/models';
 
 const pickTargets = (): StationId[] => [...POSTABLE_STATIONS].sort(() => Math.random() - 0.5).slice(0, 3).map((s) => s.id);
 
-const HAPTICS: { key: keyof typeof haptics; label: string; when: string }[] = [
+const HAPTICS: { key: HapticKind; label: string; when: string }[] = [
   { key: 'detent', label: 'Detent', when: 'dial passes a station' },
   { key: 'lockIn', label: 'Lock-in', when: 'dial settles' },
   { key: 'page', label: 'Page', when: 'swipe to next video' },
@@ -61,21 +61,11 @@ export default function Lab() {
           </Pressable>
         </Section>
 
-        <Section title="Haptics" sub="Feel each one. Phones only; most desktop browsers can’t vibrate." delay={80}>
+        <Section title="Haptics" sub="Tap one to feel it. Each tile pulses when its haptic is sent." delay={80}>
+          <SupportCard />
           <View style={styles.grid}>
             {HAPTICS.map((h) => (
-              <Pressable
-                key={h.key}
-                onPress={() => {
-                  haptics[h.key]();
-                  setLastHaptic(h.key);
-                }}
-                style={({ pressed }) => [styles.tile, lastHaptic === h.key && styles.tileActive, pressed && styles.pressed]}
-                accessibilityLabel={`Play ${h.label} haptic`}
-              >
-                <Text style={styles.tileTitle}>{h.label}</Text>
-                <Text style={styles.tileSub}>{h.when}</Text>
-              </Pressable>
+              <HapticTile key={h.key} kind={h.key} label={h.label} when={h.when} active={lastHaptic === h.key} onFire={() => setLastHaptic(h.key)} />
             ))}
           </View>
         </Section>
@@ -107,6 +97,54 @@ export default function Lab() {
   );
 }
 
+function SupportCard() {
+  const support = hapticSupport();
+  const icon = support.level === 'full' ? 'checkmark-circle' : support.level === 'partial' ? 'alert-circle' : 'close-circle';
+  const tint = support.level === 'full' ? colors.text : support.level === 'partial' ? colors.signal : colors.textDim;
+  return (
+    <View style={styles.support}>
+      <Ionicons name={icon} size={18} color={tint} />
+      <View style={styles.supportText}>
+        <Text style={[styles.supportLabel, { color: tint }]}>{support.label}</Text>
+        <Text style={styles.supportDetail}>{support.detail}</Text>
+      </View>
+    </View>
+  );
+}
+
+function HapticTile({ kind, label, when, active, onFire }: { kind: HapticKind; label: string; when: string; active: boolean; onFire: () => void }) {
+  const pulse = useSharedValue(0);
+  const [sent, setSent] = useState(0);
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + pulse.get() * 0.05 }],
+    backgroundColor: `rgba(255,90,31,${pulse.get() * 0.18})`,
+  }));
+  return (
+    <Animated.View style={[styles.tileWrap, style]}>
+      <Pressable
+        onPress={() => {
+          haptics[kind]();
+          onFire();
+          setSent((n) => n + 1);
+          pulse.set(withSequence(withTiming(1, { duration: 70 }), withSpring(0, { damping: 14 })));
+        }}
+        style={({ pressed }) => [styles.tile, active && styles.tileActive, pressed && styles.pressed]}
+        accessibilityLabel={`Play ${label} haptic`}
+      >
+        <View style={styles.tileTop}>
+          <Text style={styles.tileTitle}>{label}</Text>
+          {sent > 0 && (
+            <Animated.View key={sent} entering={ZoomIn.duration(160)}>
+              <Ionicons name="checkmark" size={13} color={colors.signal} />
+            </Animated.View>
+          )}
+        </View>
+        <Text style={styles.tileSub}>{when}</Text>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 function Section({ title, sub, delay, children }: { title: string; sub: string; delay: number; children: React.ReactNode }) {
   return (
     <Animated.View entering={FadeInDown.delay(delay).duration(300)} style={styles.section}>
@@ -128,8 +166,20 @@ const styles = StyleSheet.create({
   sectionSub: { color: colors.textDim, fontFamily: fonts.body, fontSize: 13 },
   sectionBody: { marginTop: 12, gap: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  support: {
+    flexDirection: 'row',
+    gap: 10,
+    padding: 12,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.lineStrong,
+  },
+  supportText: { flex: 1, gap: 3 },
+  supportLabel: { fontFamily: fonts.bodyBold, fontSize: 14 },
+  supportDetail: { color: colors.textDim, fontFamily: fonts.body, fontSize: 12, lineHeight: 17 },
+  tileWrap: { width: '31.6%', borderRadius: radius.md },
+  tileTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   tile: {
-    width: '31.6%',
     padding: 10,
     borderRadius: radius.md,
     backgroundColor: colors.surface,

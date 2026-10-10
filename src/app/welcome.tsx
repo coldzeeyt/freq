@@ -16,6 +16,7 @@ import { AccountForm } from '@/components/onboarding/AccountForm';
 import { DialPractice } from '@/components/onboarding/DialPractice';
 import { HumanFilterDemo } from '@/components/onboarding/HumanFilterDemo';
 import { RadioWaves } from '@/components/onboarding/RadioWaves';
+import { isTouchScreen } from '@/lib/device';
 import { haptics } from '@/lib/haptics';
 import { useFreq } from '@/state/FreqProvider';
 import { colors, fonts, radius } from '@/theme';
@@ -173,9 +174,9 @@ export default function Welcome() {
             <Text style={styles.kicker}>03 · The dial</Text>
             <Text style={styles.h2}>Spin to tune.</Text>
             <Text style={styles.lede}>
-              {Platform.OS === 'web'
-                ? 'Scroll over the knob, drag it, or click its right or left side. Each click is a station.'
-                : 'Drag around the knob, or tap its right or left side. Each click is a station.'}
+              {isTouchScreen
+                ? 'Drag around the knob, or tap its right or left side. Each click is a station.'
+                : 'Scroll over the knob, drag it, or click its right or left side. Each click is a station.'}
             </Text>
             <DialPractice targets={['comedy', 'pets']} onComplete={() => setDialDone(true)} />
             <Primary label={dialDone ? 'Next' : 'Skip practice'} ghost={!dialDone} onPress={next} />

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, Defs, Line, LinearGradient, Stop } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
+import { isTouchScreen } from '@/lib/device';
+import { haptics, isIOSWeb } from '@/lib/haptics';
 import { colors, fonts } from '@/theme';
 
 interface Props {
@@ -29,6 +31,7 @@ const ANGULAR_GEAR = 0.6;
 const STEP_SETTLE_MS = 420;
 
 const mod = (n: number, m: number) => ((n % m) + m) % m;
+const tickOnTouch = isIOSWeb;
 
 /**
  * Turn it any way you'd expect:
@@ -46,6 +49,7 @@ export function TuningDial({ count, index, litIndex, size = 96, onTuneStart, onD
   const prevTy = useSharedValue(0);
   const linear = useSharedValue(false);
   const dragging = useSharedValue(false);
+  const bump = useSharedValue(1);
   const center = size / 2;
   const stepTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const root = useRef<View>(null);
@@ -76,6 +80,7 @@ export function TuningDial({ count, index, litIndex, size = 96, onTuneStart, onD
       const d = lastDetent.get() + dir;
       lastDetent.set(d);
       rotation.set(withSpring(d * step, SPRING));
+      bump.set(withSequence(withTiming(1.06, { duration: 45 }), withSpring(1, { damping: 10, stiffness: 400 })));
       onDetent(mod(d, count));
       stepTimer.current = setTimeout(() => {
         stepTimer.current = undefined;
@@ -83,7 +88,7 @@ export function TuningDial({ count, index, litIndex, size = 96, onTuneStart, onD
         onTuneEnd(mod(lastDetent.get(), count));
       }, STEP_SETTLE_MS);
     },
-    [count, step, dragging, lastDetent, rotation, onTuneStart, onDetent, onTuneEnd],
+    [count, step, dragging, lastDetent, rotation, bump, onTuneStart, onDetent, onTuneEnd],
   );
 
   useEffect(() => () => clearTimeout(stepTimer.current), []);
@@ -114,6 +119,11 @@ export function TuningDial({ count, index, litIndex, size = 96, onTuneStart, onD
   const pan = Gesture.Pan()
     .minDistance(3)
     .hitSlop(14)
+    // A tick the moment a finger lands. On iPhone Safari this is the haptic most
+    // likely to get through, since it happens during the touch itself.
+    .onTouchesDown(() => {
+      if (tickOnTouch) scheduleOnRN(haptics.tap);
+    })
     .onStart((e) => {
       const sx = e.x - e.translationX - center;
       const sy = e.y - e.translationY - center;
@@ -147,6 +157,7 @@ export function TuningDial({ count, index, litIndex, size = 96, onTuneStart, onD
       const detent = Math.round(rotation.get() / step);
       if (detent !== lastDetent.get()) {
         lastDetent.set(detent);
+        bump.set(withSequence(withTiming(1.06, { duration: 45 }), withSpring(1, { damping: 10, stiffness: 400 })));
         scheduleOnRN(onDetent, mod(detent, count));
       }
     })
@@ -168,7 +179,7 @@ export function TuningDial({ count, index, litIndex, size = 96, onTuneStart, onD
 
   const gesture = Gesture.Exclusive(pan, tap);
 
-  const knobStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.get()}deg` }] }));
+  const knobStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.get()}deg` }, { scale: bump.get() }] }));
 
   const ringR = center - 3;
   const knobSize = size * 0.74;
@@ -250,7 +261,7 @@ export function TuningDial({ count, index, litIndex, size = 96, onTuneStart, onD
             <Line x1={kc} y1={kc * 0.16} x2={kc} y2={kc * 0.48} stroke={colors.text} strokeWidth={2.5} strokeLinecap="round" />
           </Svg>
         </Animated.View>
-        {Platform.OS === 'web' && hover && !busy && (
+        {!isTouchScreen && hover && !busy && (
           <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} style={styles.hint} pointerEvents="none">
             <Text style={styles.hintText}>scroll · drag · click a side</Text>
           </Animated.View>
