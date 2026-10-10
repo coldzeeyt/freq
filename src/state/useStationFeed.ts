@@ -10,7 +10,7 @@ export function useStationFeed(stationId: StationId, humanOnly: boolean) {
 
   useEffect(() => {
     let cancelled = false;
-    services.videos.listVideos({ stationId, humanOnly }).then((list) => {
+    services.videos.getFeed({ stationId, humanOnly }).then((list) => {
       if (!cancelled) setVideos(list);
     });
     return () => {

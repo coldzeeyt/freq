@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useRef, useState } from 'react'
 import { StyleSheet, Text } from 'react-native';
 import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radius } from '@/theme';
+import { colors, fonts, radius } from '@/theme';
 
 const ToastContext = createContext<(message: string) => void>(() => {});
 
@@ -26,7 +26,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           entering={FadeInUp.duration(180)}
           exiting={FadeOutUp.duration(180)}
           pointerEvents="none"
-          style={[styles.toast, { top: insets.top + 64 }]}
+          style={[styles.toast, { top: insets.top + 118 }]}
         >
           <Text style={styles.text}>{toast.message}</Text>
         </Animated.View>
@@ -41,12 +41,11 @@ const styles = StyleSheet.create({
   toast: {
     position: 'absolute',
     alignSelf: 'center',
-    backgroundColor: 'rgba(26,26,33,0.96)',
-    borderColor: colors.border,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: radius.pill,
+    maxWidth: '86%',
+    backgroundColor: colors.text,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: radius.sm,
   },
-  text: { color: colors.text, fontSize: 14, fontWeight: '600' },
+  text: { color: colors.bg, fontFamily: fonts.bodyMedium, fontSize: 14 },
 });

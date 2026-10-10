@@ -1,12 +1,11 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { POSTABLE_STATIONS } from '@/data/stations';
 import { haptics } from '@/lib/haptics';
-import { colors, fonts } from '@/theme';
-import type { Video } from '@/types/models';
+import { colors, fonts, radius } from '@/theme';
+import type { StationId } from '@/types/models';
 
-type PostableId = Video['stationId'];
-
-export function StationPicker({ value, onChange }: { value: PostableId | null; onChange: (id: PostableId) => void }) {
+/** Manual override when the tags pick the wrong station. */
+export function StationPicker({ value, onChange }: { value: StationId | null; onChange: (id: StationId) => void }) {
   return (
     <View style={styles.grid}>
       {POSTABLE_STATIONS.map((s) => {
@@ -16,15 +15,15 @@ export function StationPicker({ value, onChange }: { value: PostableId | null; o
             key={s.id}
             onPress={() => {
               haptics.detent();
-              onChange(s.id as PostableId);
+              onChange(s.id);
             }}
-            style={[styles.chip, selected && { borderColor: s.color, backgroundColor: 'rgba(255,255,255,0.07)' }]}
+            style={[styles.chip, selected && styles.selected]}
             accessibilityRole="radio"
             accessibilityState={{ selected }}
             accessibilityLabel={`${s.frequency} ${s.name}`}
           >
-            <Text style={[styles.freq, { color: selected ? s.color : colors.textFaint }]}>{s.frequency.toFixed(1)}</Text>
-            <Text style={[styles.name, selected && { color: colors.text }]}>{s.name}</Text>
+            <Text style={[styles.freq, selected && { color: colors.signal }]}>{s.frequency.toFixed(1)}</Text>
+            <Text style={styles.name}>{s.name}</Text>
           </Pressable>
         );
       })}
@@ -33,18 +32,18 @@ export function StationPicker({ value, onChange }: { value: PostableId | null; o
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: {
-    width: '31.5%',
-    flexGrow: 1,
-    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+    paddingVertical: 7,
     paddingHorizontal: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    gap: 2,
+    borderRadius: radius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.lineStrong,
   },
-  freq: { fontFamily: fonts.mono, fontSize: 11, fontWeight: '700' },
-  name: { color: colors.textDim, fontSize: 14, fontWeight: '700' },
+  selected: { borderColor: colors.signal, backgroundColor: 'rgba(255,90,31,0.08)' },
+  freq: { color: colors.textFaint, fontFamily: fonts.mono, fontSize: 10 },
+  name: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 13 },
 });

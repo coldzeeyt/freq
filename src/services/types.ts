@@ -1,4 +1,5 @@
-import type { NewVideoInput, Preferences, StationId, Video } from '@/types/models';
+import type { NewVideoInput, Preferences, StationId, Video, WatchEvent } from '@/types/models';
+import type { TasteProfile } from './ranking/profile';
 
 /**
  * The seam between the app and its data. The app only talks to these
@@ -6,7 +7,10 @@ import type { NewVideoInput, Preferences, StationId, Video } from '@/types/model
  * writing new implementations and changing `services/index.ts`.
  */
 export interface VideoService {
-  listVideos(query: { stationId: StationId; humanOnly: boolean }): Promise<Video[]>;
+  /** A ranked feed for one station. */
+  getFeed(query: { stationId: StationId; humanOnly: boolean }): Promise<Video[]>;
+  /** Unranked catalogue counts per station (for the station sheet). */
+  countByStation(humanOnly: boolean): Promise<Record<StationId, number>>;
   createVideo(input: NewVideoInput): Promise<Video>;
   /** Fires whenever the catalogue changes (e.g. after a post). */
   subscribe(listener: () => void): () => void;
@@ -15,6 +19,12 @@ export interface VideoService {
 export interface LikeService {
   getLikedIds(): Promise<string[]>;
   setLiked(videoId: string, liked: boolean): Promise<void>;
+}
+
+/** Collects interactions and exposes the taste profile the ranking uses. */
+export interface SignalService {
+  record(event: WatchEvent, video: Video): Promise<void>;
+  getProfile(): Promise<TasteProfile>;
 }
 
 export interface PreferencesService {
@@ -30,6 +40,7 @@ export interface MediaStore {
 export interface Services {
   videos: VideoService;
   likes: LikeService;
+  signals: SignalService;
   preferences: PreferencesService;
   media: MediaStore;
 }

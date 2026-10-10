@@ -1,13 +1,16 @@
 import { MOCK_VIDEOS } from '@/data/mockVideos';
 import { ME } from '@/data/mockCreators';
 import { isHumanMade } from '@/lib/human';
-import type { Video } from '@/types/models';
+import { normalizeTag } from '@/lib/tagRouting';
+import type { StationId, Video } from '@/types/models';
+import { rankFeed } from '../ranking/rank';
 import { readJSON, writeJSON } from '../storage';
-import type { VideoService } from '../types';
+import type { SignalService, VideoService } from '../types';
 
-const POSTS_KEY = 'my-posts';
+const POSTS_KEY = 'my-posts-v2';
+const SESSION_SEED = Math.floor(Math.random() * 1e9);
 
-export function createMockVideoService(): VideoService {
+export function createMockVideoService(signals: SignalService): VideoService {
   const listeners = new Set<() => void>();
   let myPosts: Video[] | null = null;
 
@@ -17,12 +20,21 @@ export function createMockVideoService(): VideoService {
     return myPosts;
   }
 
+  async function candidates(stationId: StationId, humanOnly: boolean) {
+    const all = [...(await loadMyPosts()), ...MOCK_VIDEOS];
+    return all.filter((v) => (stationId === 'all' || v.stationId === stationId) && (!humanOnly || isHumanMade(v)));
+  }
+
   return {
-    async listVideos({ stationId, humanOnly }) {
-      const all = [...(await loadMyPosts()), ...MOCK_VIDEOS];
-      return all.filter(
-        (v) => (stationId === 'all' || v.stationId === stationId) && (!humanOnly || isHumanMade(v)),
-      );
+    async getFeed({ stationId, humanOnly }) {
+      const [pool, profile] = await Promise.all([candidates(stationId, humanOnly), signals.getProfile()]);
+      return rankFeed(pool, profile, { stationId, seed: SESSION_SEED, viewerId: ME.id });
+    },
+
+    async countByStation(humanOnly) {
+      const counts: Record<StationId, number> = {};
+      for (const v of await candidates('all', humanOnly)) counts[v.stationId] = (counts[v.stationId] ?? 0) + 1;
+      return counts;
     },
 
     async createVideo(input) {
@@ -31,9 +43,11 @@ export function createMockVideoService(): VideoService {
         id: `local-${Date.now()}`,
         uri: input.localUri,
         stationId: input.stationId,
+        tags: [...new Set(input.tags.map(normalizeTag).filter(Boolean))],
         caption: input.caption.trim(),
         creator: ME,
         origin: input.origin,
+        views: 0,
         likes: 0,
         comments: 0,
         shares: 0,

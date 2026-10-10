@@ -1,29 +1,33 @@
-import { Platform } from 'react-native';
-
+// One warm neutral palette and a single signal color, like printed hardware.
 export const colors = {
-  bg: '#07070A',
-  surface: '#111116',
-  surfaceRaised: '#1A1A21',
-  border: 'rgba(255,255,255,0.08)',
-  text: '#F5F5F7',
-  textDim: 'rgba(245,245,247,0.62)',
-  textFaint: 'rgba(245,245,247,0.38)',
-  // The retro tuner glow.
-  glow: '#FFB547',
-  glowSoft: 'rgba(255,181,71,0.18)',
-  glowDeep: '#FF7A1A',
-  human: '#4ADE80',
-  humanSoft: 'rgba(74,222,128,0.16)',
-  like: '#FF3B5C',
-  danger: '#FF453A',
+  bg: '#0E0D0B',
+  surface: '#171613',
+  surfaceRaised: '#211F1B',
+  line: 'rgba(237,230,214,0.12)',
+  lineStrong: 'rgba(237,230,214,0.24)',
+  text: '#EDE6D6',
+  textDim: 'rgba(237,230,214,0.64)',
+  textFaint: 'rgba(237,230,214,0.4)',
+  /** Tuning-needle orange. Used sparingly: needle, active station, primary action. */
+  signal: '#FF5A1F',
+  signalInk: '#1C0D05',
+  like: '#FF5A1F',
+  danger: '#E5484D',
+  scrim: 'rgba(14,13,11,0.72)',
 };
 
 export const fonts = {
-  mono: Platform.select({
-    ios: 'Menlo',
-    android: 'monospace',
-    default: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
-  }),
+  body: 'Archivo_400Regular',
+  bodyMedium: 'Archivo_500Medium',
+  bodyBold: 'Archivo_700Bold',
+  heavy: 'Archivo_800ExtraBold',
+  narrow: 'ArchivoNarrow_500Medium',
+  narrowBold: 'ArchivoNarrow_700Bold',
+  mono: 'IBMPlexMono_400Regular',
+  monoMedium: 'IBMPlexMono_500Medium',
 };
 
-export const radius = { sm: 8, md: 14, lg: 22, pill: 999 };
+export const radius = { sm: 6, md: 10, lg: 16, pill: 999 };
+
+/** Browsers draw a focus ring on inputs; our inputs have their own borders. */
+export const noWebOutline = { outlineStyle: 'none' } as unknown as Record<string, never>;

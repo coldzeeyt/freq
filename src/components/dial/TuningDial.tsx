@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import Svg, { Circle, Defs, Line, RadialGradient, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, Line, LinearGradient, Stop } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 import { colors } from '@/theme';
 
@@ -13,7 +13,6 @@ interface Props {
   /** The tick to light up (follows the knob while turning). */
   litIndex: number;
   size?: number;
-  accent: string;
   onTuneStart: () => void;
   /** Fired each time the knob passes a detent while turning. */
   onDetent: (index: number) => void;
@@ -23,7 +22,7 @@ interface Props {
 
 const SPRING = { damping: 15, stiffness: 190, mass: 0.7 };
 
-export function TuningDial({ count, index, litIndex, size = 116, accent, onTuneStart, onDetent, onTuneEnd }: Props) {
+export function TuningDial({ count, index, litIndex, size = 96, onTuneStart, onDetent, onTuneEnd }: Props) {
   const step = 360 / count;
   const rotation = useSharedValue(index * step);
   const lastDetent = useSharedValue(index);
@@ -94,28 +93,26 @@ export function TuningDial({ count, index, litIndex, size = 116, accent, onTuneS
           onTuneEnd(next);
         }}
       >
-        {/* Fixed detent ring: one tick per station, the current one lit. */}
+        {/* Fixed bezel: one detent mark per station, the current one in signal orange. */}
         <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
+          <Circle cx={center} cy={center} r={ringR} fill="none" stroke={colors.line} strokeWidth={1} />
           {Array.from({ length: count }, (_, i) => {
             const a = ((i * step - 90) * Math.PI) / 180;
             const lit = i === litIndex;
-            const r1 = ringR - (lit ? 9 : 6);
+            const r1 = ringR - (lit ? 7 : 4);
             return (
               <Line
                 key={i}
                 x1={center + Math.cos(a) * r1}
                 y1={center + Math.sin(a) * r1}
-                x2={center + Math.cos(a) * ringR}
-                y2={center + Math.sin(a) * ringR}
-                stroke={lit ? accent : 'rgba(255,255,255,0.28)'}
-                strokeWidth={lit ? 3 : 1.5}
-                strokeLinecap="round"
+                x2={center + Math.cos(a) * (ringR - 1)}
+                y2={center + Math.sin(a) * (ringR - 1)}
+                stroke={lit ? colors.signal : colors.lineStrong}
+                strokeWidth={lit ? 2.5 : 1}
               />
             );
           })}
         </Svg>
-
-        <View style={[styles.glow, { shadowColor: accent }]} pointerEvents="none" />
 
         <Animated.View
           style={[
@@ -126,36 +123,35 @@ export function TuningDial({ count, index, litIndex, size = 116, accent, onTuneS
         >
           <Svg width={knobSize} height={knobSize}>
             <Defs>
-              <RadialGradient id="body" cx="40%" cy="35%" r="75%">
-                <Stop offset="0" stopColor="#3A3A44" />
-                <Stop offset="0.6" stopColor="#1C1C22" />
-                <Stop offset="1" stopColor="#0C0C10" />
-              </RadialGradient>
-              <RadialGradient id="cap" cx="45%" cy="40%" r="70%">
-                <Stop offset="0" stopColor="#2E2E36" />
-                <Stop offset="1" stopColor="#141418" />
-              </RadialGradient>
+              <LinearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor="#3B3833" />
+                <Stop offset="1" stopColor="#141310" />
+              </LinearGradient>
+              <LinearGradient id="cap" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor="#24221E" />
+                <Stop offset="1" stopColor="#2E2B26" />
+              </LinearGradient>
             </Defs>
-            <Circle cx={kc} cy={kc} r={kc - 1} fill="url(#body)" stroke="rgba(255,255,255,0.12)" strokeWidth={1} />
-            {/* Knurled grip */}
-            {Array.from({ length: 36 }, (_, i) => {
-              const a = (i * 10 * Math.PI) / 180;
+            <Circle cx={kc} cy={kc} r={kc - 0.5} fill="url(#body)" />
+            {/* Knurled edge */}
+            {Array.from({ length: 48 }, (_, i) => {
+              const a = (i * 7.5 * Math.PI) / 180;
               return (
                 <Line
                   key={i}
-                  x1={kc + Math.cos(a) * (kc - 2)}
-                  y1={kc + Math.sin(a) * (kc - 2)}
-                  x2={kc + Math.cos(a) * (kc - 8)}
-                  y2={kc + Math.sin(a) * (kc - 8)}
-                  stroke="rgba(255,255,255,0.10)"
-                  strokeWidth={1.4}
+                  x1={kc + Math.cos(a) * (kc - 1)}
+                  y1={kc + Math.sin(a) * (kc - 1)}
+                  x2={kc + Math.cos(a) * (kc - 5)}
+                  y2={kc + Math.sin(a) * (kc - 5)}
+                  stroke="rgba(0,0,0,0.45)"
+                  strokeWidth={1.2}
                 />
               );
             })}
-            <Circle cx={kc} cy={kc} r={kc * 0.62} fill="url(#cap)" stroke="rgba(0,0,0,0.6)" strokeWidth={1} />
-            {/* Pointer */}
-            <Line x1={kc} y1={kc * 0.22} x2={kc} y2={kc * 0.6} stroke={accent} strokeWidth={4} strokeLinecap="round" />
-            <Circle cx={kc} cy={kc * 0.22} r={3.2} fill="#fff" opacity={0.9} />
+            <Circle cx={kc} cy={kc} r={kc * 0.7} fill="url(#cap)" stroke="rgba(0,0,0,0.5)" strokeWidth={1} />
+            <Circle cx={kc} cy={kc} r={kc * 0.7 - 1} fill="none" stroke="rgba(237,230,214,0.06)" strokeWidth={1} />
+            {/* Indicator line */}
+            <Line x1={kc} y1={kc * 0.16} x2={kc} y2={kc * 0.48} stroke={colors.text} strokeWidth={2.5} strokeLinecap="round" />
           </Svg>
         </Animated.View>
       </View>
@@ -167,21 +163,9 @@ const styles = StyleSheet.create({
   knob: {
     position: 'absolute',
     shadowColor: '#000',
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 10,
-  },
-  glow: {
-    position: 'absolute',
-    left: '20%',
-    top: '20%',
-    width: '60%',
-    height: '60%',
-    borderRadius: 999,
-    backgroundColor: colors.bg,
     shadowOpacity: 0.55,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 8,
   },
 });

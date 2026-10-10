@@ -1,26 +1,27 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text } from 'react-native';
-import Animated, { interpolateColor, useAnimatedStyle, useDerivedValue, withTiming } from 'react-native-reanimated';
-import { colors, radius } from '@/theme';
+import Animated, { interpolateColor, useAnimatedStyle, useDerivedValue, withSpring } from 'react-native-reanimated';
+import { colors, fonts } from '@/theme';
 
 export function HumanOnlyToggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
-  const t = useDerivedValue(() => withTiming(value ? 1 : 0, { duration: 180 }));
+  const t = useDerivedValue(() => withSpring(value ? 1 : 0, { damping: 18, stiffness: 260 }));
   const trackStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(t.get(), [0, 1], ['rgba(255,255,255,0.18)', colors.human]),
+    backgroundColor: interpolateColor(t.get(), [0, 1], ['rgba(237,230,214,0.16)', colors.text]),
   }));
-  const thumbStyle = useAnimatedStyle(() => ({ transform: [{ translateX: t.get() * 14 }] }));
+  const thumbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: t.get() * 12 }],
+    backgroundColor: interpolateColor(t.get(), [0, 1], [colors.text, colors.bg]),
+  }));
 
   return (
     <Pressable
       onPress={() => onChange(!value)}
-      style={[styles.pill, value && styles.pillOn]}
+      style={styles.wrap}
       accessibilityRole="switch"
       accessibilityState={{ checked: value }}
       accessibilityLabel="Human only"
-      hitSlop={6}
+      hitSlop={8}
     >
-      <Ionicons name="finger-print" size={15} color={value ? colors.human : colors.textDim} />
-      <Text style={[styles.label, value && styles.labelOn]}>HUMAN ONLY</Text>
+      <Text style={[styles.label, value && styles.labelOn]}>Human only</Text>
       <Animated.View style={[styles.track, trackStyle]}>
         <Animated.View style={[styles.thumb, thumbStyle]} />
       </Animated.View>
@@ -29,21 +30,9 @@ export function HumanOnlyToggle({ value, onChange }: { value: boolean; onChange:
 }
 
 const styles = StyleSheet.create({
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    height: 38,
-    paddingLeft: 11,
-    paddingRight: 8,
-    borderRadius: radius.pill,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  pillOn: { backgroundColor: 'rgba(8,28,16,0.7)', borderColor: 'rgba(74,222,128,0.45)' },
-  label: { color: colors.textDim, fontSize: 11, fontWeight: '800', letterSpacing: 1 },
-  labelOn: { color: colors.human },
-  track: { width: 32, height: 18, borderRadius: 9, padding: 2 },
-  thumb: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#fff' },
+  wrap: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 34, paddingHorizontal: 4 },
+  label: { color: colors.textDim, fontFamily: fonts.bodyMedium, fontSize: 13 },
+  labelOn: { color: colors.text },
+  track: { width: 28, height: 16, borderRadius: 8, padding: 2 },
+  thumb: { width: 12, height: 12, borderRadius: 6 },
 });

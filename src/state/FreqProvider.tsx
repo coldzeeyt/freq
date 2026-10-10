@@ -1,14 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
+import { DEFAULT_PINNED, STATIONS } from '@/data/stations';
 import { services } from '@/services';
-import type { Preferences, PresetSlots, StationId } from '@/types/models';
+import type { Preferences, StationId, Video } from '@/types/models';
 
-export const PRESET_COUNT = 5;
+export const MAX_PINNED = 8;
 
 const DEFAULT_PREFS: Preferences = {
   stationId: 'all',
   humanOnly: false,
-  presets: Array<StationId | null>(PRESET_COUNT).fill(null),
+  pinned: DEFAULT_PINNED,
   // Browsers block autoplay with sound until the user interacts, so start muted on web.
   muted: Platform.OS === 'web',
 };
@@ -18,12 +19,14 @@ interface FreqContextValue extends Preferences {
   setStation: (id: StationId) => void;
   setHumanOnly: (on: boolean) => void;
   setMuted: (muted: boolean) => void;
-  savePreset: (slot: number, id: StationId) => void;
+  /** Returns false when the bar is already full. */
+  togglePin: (id: StationId) => boolean;
   likedIds: ReadonlySet<string>;
-  toggleLike: (videoId: string) => boolean;
+  toggleLike: (video: Video) => boolean;
 }
 
 const FreqContext = createContext<FreqContextValue | null>(null);
+const known = new Set(STATIONS.map((s) => s.id));
 
 export function FreqProvider({ children }: { children: React.ReactNode }) {
   const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFS);
@@ -32,16 +35,13 @@ export function FreqProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     Promise.all([services.preferences.load(), services.likes.getLikedIds()]).then(([saved, liked]) => {
-      setPrefs((p) => {
-        const presets = [...(saved.presets ?? p.presets)];
-        presets.length = PRESET_COUNT;
-        return {
-          ...p,
-          ...saved,
-          muted: Platform.OS === 'web' ? true : (saved.muted ?? p.muted),
-          presets: Array.from(presets, (s) => s ?? null),
-        };
-      });
+      setPrefs((p) => ({
+        ...p,
+        ...saved,
+        stationId: saved.stationId && known.has(saved.stationId) ? saved.stationId : p.stationId,
+        pinned: (saved.pinned ?? p.pinned).filter((id) => known.has(id)),
+        muted: Platform.OS === 'web' ? true : (saved.muted ?? p.muted),
+      }));
       setLikedIds(new Set(liked));
       setHydrated(true);
     });
@@ -53,24 +53,27 @@ export function FreqProvider({ children }: { children: React.ReactNode }) {
 
   const update = useCallback((patch: Partial<Preferences>) => setPrefs((p) => ({ ...p, ...patch })), []);
 
-  const savePreset = useCallback((slot: number, id: StationId) => {
-    setPrefs((p) => {
-      const presets: PresetSlots = [...p.presets];
-      presets[slot] = id;
-      return { ...p, presets };
-    });
-  }, []);
+  const togglePin = useCallback(
+    (id: StationId) => {
+      const has = prefs.pinned.includes(id);
+      if (!has && prefs.pinned.length >= MAX_PINNED) return false;
+      update({ pinned: has ? prefs.pinned.filter((p) => p !== id) : [...prefs.pinned, id] });
+      return true;
+    },
+    [prefs.pinned, update],
+  );
 
   const toggleLike = useCallback(
-    (videoId: string) => {
-      const next = !likedIds.has(videoId);
+    (video: Video) => {
+      const next = !likedIds.has(video.id);
       setLikedIds((prev) => {
         const s = new Set(prev);
-        if (next) s.add(videoId);
-        else s.delete(videoId);
+        if (next) s.add(video.id);
+        else s.delete(video.id);
         return s;
       });
-      services.likes.setLiked(videoId, next);
+      services.likes.setLiked(video.id, next);
+      services.signals.record({ type: 'like', videoId: video.id, liked: next }, video);
       return next;
     },
     [likedIds],
@@ -83,11 +86,11 @@ export function FreqProvider({ children }: { children: React.ReactNode }) {
       setStation: (stationId) => update({ stationId }),
       setHumanOnly: (humanOnly) => update({ humanOnly }),
       setMuted: (muted) => update({ muted }),
-      savePreset,
+      togglePin,
       likedIds,
       toggleLike,
     }),
-    [prefs, hydrated, update, savePreset, likedIds, toggleLike],
+    [prefs, hydrated, update, togglePin, likedIds, toggleLike],
   );
 
   return <FreqContext.Provider value={value}>{children}</FreqContext.Provider>;

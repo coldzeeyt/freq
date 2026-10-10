@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors } from '@/theme';
+import { HumanBadge } from '@/components/feed/HumanBadge';
+import { colors, fonts } from '@/theme';
 import { RecordButton } from './RecordButton';
 import { formatClock, MAX_SECONDS } from './recorderTypes';
 
@@ -39,8 +40,8 @@ export function RecorderChrome({ recording, elapsed, ready, onToggle, onFlip, on
       </View>
       <View style={[styles.bottom, { paddingBottom: insets.bottom + 28 }]}>
         <View style={styles.humanNote}>
-          <Ionicons name="finger-print" size={14} color={colors.human} />
-          <Text style={styles.humanText}>Recorded in Freq = verified Human</Text>
+          <HumanBadge />
+          <Text style={styles.humanText}>recorded in Freq</Text>
         </View>
         <RecordButton recording={recording} disabled={!ready} onPress={onToggle} />
       </View>
@@ -52,10 +53,10 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
   circle: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.35)' },
   timer: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.45)' },
-  timerLive: { backgroundColor: 'rgba(255,69,58,0.85)' },
+  timerLive: { backgroundColor: colors.danger },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff' },
-  timerText: { color: '#fff', fontWeight: '700', fontVariant: ['tabular-nums'] },
+  timerText: { color: '#fff', fontFamily: fonts.mono, fontSize: 13 },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', gap: 18 },
-  humanNote: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.5)' },
-  humanText: { color: colors.human, fontSize: 12, fontWeight: '700' },
+  humanNote: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: 'rgba(14,13,11,0.6)' },
+  humanText: { color: colors.text, fontFamily: fonts.mono, fontSize: 11 },
 });
