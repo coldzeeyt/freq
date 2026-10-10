@@ -33,9 +33,12 @@ def icon(size: int, pad: float = 0.0, round_corners: bool = False) -> Image.Imag
 
 icon(1024).convert('RGB').save(ROOT / 'assets/icon.png')
 icon(1024).convert('RGB').save(ROOT / 'assets/splash-icon.png')
-icon(48, round_corners=True).save(ROOT / 'assets/favicon.png')
 icon(192).convert('RGB').save(ROOT / 'public/icon-192.png')
 icon(512).convert('RGB').save(ROOT / 'public/icon-512.png')
 icon(512, pad=0.12).convert('RGB').save(ROOT / 'public/icon-maskable-512.png')
 icon(180).convert('RGB').save(ROOT / 'public/apple-touch-icon.png')
+# Browser-tab favicon: a plain red circle.
+fav = Image.new('RGBA', (512, 512), (0, 0, 0, 0))
+ImageDraw.Draw(fav).ellipse([16, 16, 496, 496], fill=(229, 32, 32, 255))
+fav.resize((48, 48), Image.LANCZOS).save(ROOT / 'assets/favicon.png')
 print('icons written')
