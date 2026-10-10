@@ -1,16 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
+import { useToast } from '@/components/ui/Toast';
 import { haptics } from '@/lib/haptics';
 import { useFreq } from '@/state/FreqProvider';
 import { colors, fonts, radius } from '@/theme';
 
 export default function Me() {
   const insets = useSafeAreaInsets();
-  const { account, me, signOut } = useFreq();
+  const { account, me, signOut, deleteAccount } = useFreq();
+  const toast = useToast();
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   return (
@@ -41,12 +45,48 @@ export default function Me() {
             router.replace('/welcome');
           }}
         />
+        {account && (
+          <Row
+            delay={260}
+            icon="trash-outline"
+            danger
+            label={confirmDelete ? 'Tap again to delete for good' : 'Delete account'}
+            sub={confirmDelete ? 'Your account, posts and likes are removed. This can’t be undone.' : undefined}
+            onPress={async () => {
+              if (!confirmDelete) {
+                haptics.warning();
+                setConfirmDelete(true);
+                return;
+              }
+              try {
+                await deleteAccount();
+                router.replace('/welcome');
+              } catch (e) {
+                toast((e as Error).message);
+              }
+            }}
+          />
+        )}
       </View>
     </View>
   );
 }
 
-function Row({ icon, label, sub, onPress, delay }: { icon: keyof typeof Ionicons.glyphMap; label: string; sub?: string; onPress: () => void; delay: number }) {
+function Row({
+  icon,
+  label,
+  sub,
+  onPress,
+  delay,
+  danger,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  sub?: string;
+  onPress: () => void;
+  delay: number;
+  danger?: boolean;
+}) {
   return (
     <Animated.View entering={FadeInDown.delay(delay).duration(260)}>
       <Pressable
@@ -58,9 +98,9 @@ function Row({ icon, label, sub, onPress, delay }: { icon: keyof typeof Ionicons
         accessibilityRole="button"
         accessibilityLabel={label}
       >
-        <Ionicons name={icon} size={20} color={colors.signal} />
+        <Ionicons name={icon} size={20} color={danger ? colors.danger : colors.signal} />
         <View style={styles.rowText}>
-          <Text style={styles.rowLabel}>{label}</Text>
+          <Text style={[styles.rowLabel, danger && { color: colors.danger }]}>{label}</Text>
           {sub && <Text style={styles.rowSub}>{sub}</Text>}
         </View>
         <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />

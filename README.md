@@ -80,6 +80,7 @@ Freq has a real backend in `server/`: Express + Postgres, deployed on Railway as
 - **Feed:** `GET /api/feed?station=comedy&humanOnly=1` returns that station ranked for the signed-in person. The server runs the same ranking code as `src/services/ranking/`, with each person's taste profile stored in Postgres.
 - **Posting:** `POST /api/videos` (multipart) stores the file on a Railway volume (`/data/media`) and serves it at `/media/...` with range requests, so videos stream.
 - **Likes and signals:** likes, watch time and shares update counts and the taste profile.
+- **Deleting:** `POST /api/videos/:id/delete` removes your own post and its file. `POST /api/auth/delete` (Account → Delete account) removes the account, its posts, files, likes and profile.
 - On first boot the server creates its tables and loads the 120 starter videos.
 
 Railway setup (project `freq`): a `web` service (this repo; `railway.json` builds the web app and runs `npm run server`), a `Postgres` service, and a `freq-media` volume on `web` at `/data`. `web` has `DATABASE_URL=${{Postgres.DATABASE_URL}}`, `JWT_SECRET`, `MEDIA_DIR=/data/media` and `NODE_ENV=production`.

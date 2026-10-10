@@ -19,6 +19,7 @@ interface FreqContextValue extends Preferences {
   createAccount: (input: NewAccountInput) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   setStation: (id: StationId) => void;
   setHumanOnly: (on: boolean) => void;
   setMuted: (muted: boolean) => void;
@@ -100,6 +101,11 @@ export function FreqProvider({ children }: { children: React.ReactNode }) {
       },
       signOut: async () => {
         await services.auth.signOut();
+        setAccount(null);
+        setLikedIds(new Set());
+      },
+      deleteAccount: async () => {
+        await services.auth.deleteAccount();
         setAccount(null);
         setLikedIds(new Set());
       },

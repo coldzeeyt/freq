@@ -30,6 +30,10 @@ export function createApiAuth(): AuthService {
     async signOut() {
       await setToken(null);
     },
+    async deleteAccount() {
+      await api('/auth/delete', { method: 'POST' });
+      await setToken(null);
+    },
   };
 }
 

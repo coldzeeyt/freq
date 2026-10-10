@@ -39,6 +39,11 @@ const postable = new Set(POSTABLE_STATIONS.map((s) => s.id));
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const HANDLE = /^[a-z0-9._]{3,20}$/;
 
+function removeMedia(uri: string) {
+  if (!uri.startsWith('/media/')) return;
+  fs.rmSync(path.join(MEDIA_DIR, path.basename(uri)), { force: true });
+}
+
 const origin = (req: Request) => `${req.protocol}://${req.get('host')}`;
 
 interface VideoRow {
@@ -155,6 +160,14 @@ app.post('/api/auth/login', route(async (req, res) => {
   res.json({ token: await issueToken(rows[0].id), account: toAccount(rows[0]) });
 }));
 
+/** Deletes the account, its posts (and their files), likes and taste profile. */
+app.post('/api/auth/delete', requireUser, route(async (req, res) => {
+  const { rows } = await pool.query<{ uri: string }>('select uri from videos where user_id = $1', [req.user!.id]);
+  await pool.query('delete from users where id = $1', [req.user!.id]);
+  rows.forEach((r) => removeMedia(r.uri));
+  res.json({ ok: true });
+}));
+
 app.get('/api/auth/me', requireUser, route(async (req, res) => {
   res.json({ account: toAccount(req.user!), creator: creatorFor(req.user!) });
 }));
@@ -217,6 +230,16 @@ app.post('/api/videos', requireUser, upload.single('video'), route(async (req, r
     [id, req.user!.id, creatorFor(req.user!), `/media/${file.filename}`, stationId, [...new Set(tags)], caption, videoOrigin],
   );
   res.status(201).json({ video: toVideo(rows[0], origin(req)) });
+}));
+
+app.post('/api/videos/:id/delete', requireUser, route(async (req, res) => {
+  const { rows } = await pool.query<{ uri: string }>('delete from videos where id = $1 and user_id = $2 returning uri', [
+    String(req.params.id),
+    req.user!.id,
+  ]);
+  if (!rows[0]) return void res.status(404).json({ error: 'That isn’t your video.' });
+  removeMedia(rows[0].uri);
+  res.json({ ok: true });
 }));
 
 // --- Likes & signals ----------------------------------------------------------

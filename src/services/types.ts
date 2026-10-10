@@ -25,6 +25,8 @@ export interface AuthService {
   createAccount(input: NewAccountInput): Promise<Account>;
   signIn(email: string, password: string): Promise<Account>;
   signOut(): Promise<void>;
+  /** Permanently deletes the account and everything it posted. */
+  deleteAccount(): Promise<void>;
 }
 
 /** Collects interactions and exposes the taste profile the ranking uses. */

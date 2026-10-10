@@ -48,6 +48,10 @@ export function createLocalAuth(): AuthService {
       return s.account;
     },
 
+    async deleteAccount() {
+      await writeJSON(KEY, null);
+    },
+
     async signOut() {
       const s = await readJSON<Stored | null>(KEY, null);
       if (s) await writeJSON(KEY, { ...s, signedIn: false });
