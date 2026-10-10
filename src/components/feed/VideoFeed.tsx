@@ -31,10 +31,14 @@ export function VideoFeed({ videos, feedKey, muted, holdPlayback, bottomInset, s
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<FlatList<Video>>(null);
   const activeRef = useRef(0);
-
+  const [prevKey, setPrevKey] = useState(feedKey);
+  // A new station/filter starts at the top.
+  if (prevKey !== feedKey) {
+    setPrevKey(feedKey);
+    setActiveIndex(0);
+  }
   useEffect(() => {
     activeRef.current = 0;
-    setActiveIndex(0);
   }, [feedKey]);
 
   const onScroll = useCallback(

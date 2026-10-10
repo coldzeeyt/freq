@@ -17,13 +17,10 @@ export function FrequencyDisplay({ station, tuning, humanOnly }: Props) {
   const width = useSharedValue(0);
 
   useEffect(() => {
-    position.value = withSpring((station.frequency - FREQ_MIN) / (FREQ_MAX - FREQ_MIN), {
-      damping: 18,
-      stiffness: 160,
-    });
+    position.set(withSpring((station.frequency - FREQ_MIN) / (FREQ_MAX - FREQ_MIN), { damping: 18, stiffness: 160 }));
   }, [station.frequency, position]);
 
-  const needleStyle = useAnimatedStyle(() => ({ transform: [{ translateX: position.value * width.value }] }));
+  const needleStyle = useAnimatedStyle(() => ({ transform: [{ translateX: position.get() * width.get() }] }));
   const glow = { textShadowColor: station.color, textShadowRadius: 14, textShadowOffset: { width: 0, height: 0 } };
 
   return (
@@ -41,7 +38,7 @@ export function FrequencyDisplay({ station, tuning, humanOnly }: Props) {
           {station.name.toUpperCase()}
         </Text>
       </View>
-      <View style={styles.scale} onLayout={(e) => (width.value = e.nativeEvent.layout.width)}>
+      <View style={styles.scale} onLayout={(e) => width.set(e.nativeEvent.layout.width)}>
         {Array.from({ length: 22 }, (_, i) => (
           <View key={i} style={[styles.tick, i % 5 === 0 && styles.tickMajor]} />
         ))}

@@ -26,7 +26,7 @@ export function useTuner(stationId: StationId, setStation: (id: StationId) => vo
 
   const fadeStatic = useCallback(
     (delay = 120) => {
-      staticLevel.value = withDelay(delay, withTiming(0, { duration: FADE_MS }));
+      staticLevel.set(withDelay(delay, withTiming(0, { duration: FADE_MS })));
       clearTimeout(hideTimer.current);
       hideTimer.current = setTimeout(() => setStaticVisible(false), delay + FADE_MS + 40);
     },
@@ -35,7 +35,7 @@ export function useTuner(stationId: StationId, setStation: (id: StationId) => vo
 
   const onTuneStart = useCallback(() => {
     showStatic();
-    staticLevel.value = withTiming(STATIC_PEAK, { duration: 140 });
+    staticLevel.set(withTiming(STATIC_PEAK, { duration: 140 }));
     setPreviewIndex(stationIndex(stationId));
     sounds.startStatic();
   }, [showStatic, staticLevel, stationId, sounds]);
@@ -71,7 +71,7 @@ export function useTuner(stationId: StationId, setStation: (id: StationId) => vo
         return;
       }
       showStatic();
-      staticLevel.value = withSequence(withTiming(STATIC_PEAK, { duration: 90 }), withTiming(STATIC_PEAK, { duration: 160 }));
+      staticLevel.set(withSequence(withTiming(STATIC_PEAK, { duration: 90 }), withTiming(STATIC_PEAK, { duration: 160 })));
       sounds.startStatic();
       sounds.playClick();
       haptics.lockIn();

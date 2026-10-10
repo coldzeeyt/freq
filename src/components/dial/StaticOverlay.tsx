@@ -19,7 +19,7 @@ export function StaticOverlay({ level, visible }: { level: SharedValue<number>; 
     return () => clearInterval(id);
   }, [visible]);
 
-  const style = useAnimatedStyle(() => ({ opacity: level.value }));
+  const style = useAnimatedStyle(() => ({ opacity: level.get() }));
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, styles.wrap, style]} pointerEvents="none">

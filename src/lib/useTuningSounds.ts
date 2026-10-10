@@ -11,11 +11,13 @@ export function useTuningSounds(enabled: boolean) {
   const hissing = useRef(false);
 
   useEffect(() => {
+    /* eslint-disable react-hooks/immutability -- expo-audio players are configured imperatively */
     // Mix with (not interrupt) the feed's video audio, and play even with the iOS silent switch.
     setAudioModeAsync({ playsInSilentMode: true, interruptionMode: 'mixWithOthers' }).catch(() => {});
     hiss.loop = true;
     hiss.volume = 0.35;
     click.volume = 0.8;
+    /* eslint-enable react-hooks/immutability */
   }, [click, hiss]);
 
   const playClick = useCallback(() => {

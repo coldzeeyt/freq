@@ -15,12 +15,12 @@ export function ActionRail({ video }: { video: Video }) {
   const toast = useToast();
   const liked = likedIds.has(video.id);
   const heartScale = useSharedValue(1);
-  const heartStyle = useAnimatedStyle(() => ({ transform: [{ scale: heartScale.value }] }));
+  const heartStyle = useAnimatedStyle(() => ({ transform: [{ scale: heartScale.get() }] }));
 
   const onLike = () => {
     const nowLiked = toggleLike(video.id);
     haptics.like();
-    heartScale.value = withSequence(withSpring(nowLiked ? 1.35 : 0.8, { duration: 140 }), withSpring(1));
+    heartScale.set(withSequence(withSpring(nowLiked ? 1.35 : 0.8, { duration: 140 }), withSpring(1)));
   };
 
   const onShare = async () => {

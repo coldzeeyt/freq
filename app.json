@@ -47,7 +47,9 @@
         {
           "photosPermission": "Freq lets you upload videos from your library."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-asset"
     ],
     "scheme": "freq",
     "backgroundColor": "#07070A",

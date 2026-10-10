@@ -30,10 +30,12 @@ interface Props {
 export const VideoCard = memo(function VideoCard(props: Props) {
   const { video, height, isActive, shouldLoad, bottomInset, showStation } = props;
   const [userPaused, setUserPaused] = useState(false);
-
-  useEffect(() => {
+  const [wasActive, setWasActive] = useState(isActive);
+  // Leaving a card clears its manual pause (state adjusted during render, not in an effect).
+  if (wasActive !== isActive) {
+    setWasActive(isActive);
     if (!isActive) setUserPaused(false);
-  }, [isActive]);
+  }
 
   const station = getStation(video.stationId);
 
@@ -97,6 +99,8 @@ function VideoSurface({ video, muted, playing, isActive }: Props & { playing: bo
   const { status } = useEvent(player, 'statusChange', { status: player.status });
 
   useEffect(() => {
+    // expo-video players are configured imperatively.
+    // eslint-disable-next-line react-hooks/immutability
     player.muted = muted;
   }, [player, muted]);
 
@@ -107,6 +111,7 @@ function VideoSurface({ video, muted, playing, isActive }: Props & { playing: bo
 
   // Start from the top each time you come back to a video.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
     if (!isActive) player.currentTime = 0;
   }, [player, isActive]);
 
@@ -124,7 +129,7 @@ function VideoSurface({ video, muted, playing, isActive }: Props & { playing: bo
       {status === 'error' && (
         <View style={styles.errorBox} pointerEvents="none">
           <Ionicons name="radio-outline" size={28} color={colors.textDim} />
-          <Text style={styles.errorText}>Signal lost — couldn't load this video</Text>
+          <Text style={styles.errorText}>Signal lost — couldn’t load this video</Text>
         </View>
       )}
       {isActive && <ProgressBar player={player} />}
@@ -135,12 +140,13 @@ function VideoSurface({ video, muted, playing, isActive }: Props & { playing: bo
 function ProgressBar({ player }: { player: VideoPlayer }) {
   const progress = useSharedValue(0);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
     player.timeUpdateEventInterval = 0.25;
   }, [player]);
   useEventListener(player, 'timeUpdate', ({ currentTime }) => {
-    progress.value = player.duration > 0 ? currentTime / player.duration : 0;
+    progress.set(player.duration > 0 ? currentTime / player.duration : 0);
   });
-  const style = useAnimatedStyle(() => ({ width: `${progress.value * 100}%` }));
+  const style = useAnimatedStyle(() => ({ width: `${progress.get() * 100}%` }));
   return (
     <View style={styles.progressTrack} pointerEvents="none">
       <Animated.View style={[styles.progressFill, style]} />

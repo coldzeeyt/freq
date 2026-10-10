@@ -33,22 +33,22 @@ export function TuningDial({ count, index, litIndex, size = 116, accent, onTuneS
 
   // Follow external changes (presets) by turning the shortest way round.
   useEffect(() => {
-    if (active.value) return;
-    const current = lastDetent.value;
+    if (active.get()) return;
+    const current = lastDetent.get();
     const currentMod = ((current % count) + count) % count;
     let delta = index - currentMod;
     if (delta > count / 2) delta -= count;
     if (delta < -count / 2) delta += count;
     if (delta === 0) return;
-    lastDetent.value = current + delta;
-    rotation.value = withSpring((current + delta) * step, SPRING);
+    lastDetent.set(current + delta);
+    rotation.set(withSpring((current + delta) * step, SPRING));
   }, [index, count, step, active, lastDetent, rotation]);
 
   const pan = Gesture.Pan()
     .minDistance(0)
     .onBegin((e) => {
-      active.value = true;
-      prevAngle.value = (Math.atan2(e.y - center, e.x - center) * 180) / Math.PI;
+      active.set(true);
+      prevAngle.set((Math.atan2(e.y - center, e.x - center) * 180) / Math.PI);
       scheduleOnRN(onTuneStart);
     })
     .onUpdate((e) => {
@@ -57,25 +57,25 @@ export function TuningDial({ count, index, litIndex, size = 116, accent, onTuneS
       // Angles are meaningless right at the hub; ignore to avoid jumps.
       if (dx * dx + dy * dy < 100) return;
       const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-      let delta = angle - prevAngle.value;
+      let delta = angle - prevAngle.get();
       if (delta > 180) delta -= 360;
       if (delta < -180) delta += 360;
-      prevAngle.value = angle;
-      rotation.value += delta;
-      const detent = Math.round(rotation.value / step);
-      if (detent !== lastDetent.value) {
-        lastDetent.value = detent;
+      prevAngle.set(angle);
+      rotation.set(rotation.get() + delta);
+      const detent = Math.round(rotation.get() / step);
+      if (detent !== lastDetent.get()) {
+        lastDetent.set(detent);
         scheduleOnRN(onDetent, ((detent % count) + count) % count);
       }
     })
     .onFinalize(() => {
-      if (!active.value) return;
-      active.value = false;
-      rotation.value = withSpring(lastDetent.value * step, SPRING);
-      scheduleOnRN(onTuneEnd, ((lastDetent.value % count) + count) % count);
+      if (!active.get()) return;
+      active.set(false);
+      rotation.set(withSpring(lastDetent.get() * step, SPRING));
+      scheduleOnRN(onTuneEnd, ((lastDetent.get() % count) + count) % count);
     });
 
-  const knobStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value}deg` }] }));
+  const knobStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.get()}deg` }] }));
 
   const ringR = center - 3;
   const knobSize = size * 0.74;

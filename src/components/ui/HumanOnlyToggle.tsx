@@ -1,14 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import Animated, { interpolateColor, useAnimatedStyle, useDerivedValue, withTiming } from 'react-native-reanimated';
 import { colors, radius } from '@/theme';
 
 export function HumanOnlyToggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   const t = useDerivedValue(() => withTiming(value ? 1 : 0, { duration: 180 }));
   const trackStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(t.value, [0, 1], ['rgba(255,255,255,0.18)', colors.human]),
+    backgroundColor: interpolateColor(t.get(), [0, 1], ['rgba(255,255,255,0.18)', colors.human]),
   }));
-  const thumbStyle = useAnimatedStyle(() => ({ transform: [{ translateX: t.value * 14 }] }));
+  const thumbStyle = useAnimatedStyle(() => ({ transform: [{ translateX: t.get() * 14 }] }));
 
   return (
     <Pressable

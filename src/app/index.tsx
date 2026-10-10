@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PresetBar } from '@/components/dial/PresetBar';
@@ -22,6 +23,13 @@ export default function FeedScreen() {
   const tuner = useTuner(stationId, setStation);
   const insets = useSafeAreaInsets();
   const [consoleHeight, setConsoleHeight] = useState(150);
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
 
   const station = getStation(stationId);
   const displayed = tuner.previewIndex !== null ? STATIONS[tuner.previewIndex] : station;
@@ -44,7 +52,7 @@ export default function FeedScreen() {
         videos={hydrated ? videos : null}
         feedKey={`${stationId}-${humanOnly}`}
         muted={muted}
-        holdPlayback={tuner.tuning}
+        holdPlayback={tuner.tuning || !focused}
         bottomInset={consoleHeight}
         showStation={stationId === 'all'}
         emptyMessage={
@@ -73,6 +81,17 @@ export default function FeedScreen() {
             accessibilityLabel={muted ? 'Unmute' : 'Mute'}
           >
             <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={20} color="#fff" />
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              haptics.tap();
+              router.push('/post');
+            }}
+            style={[styles.iconButton, styles.postButton]}
+            hitSlop={8}
+            accessibilityLabel="New post"
+          >
+            <Ionicons name="add" size={24} color="#1A1205" />
           </Pressable>
         </View>
       </View>
@@ -131,5 +150,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.35)',
   },
+  postButton: { backgroundColor: colors.glow },
   console: { position: 'absolute', left: 10, right: 10, bottom: 0 },
 });
