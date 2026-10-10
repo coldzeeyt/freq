@@ -2,9 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PresetBar } from '@/components/dial/PresetBar';
 import { StaticOverlay } from '@/components/dial/StaticOverlay';
 import { TunerConsole } from '@/components/dial/TunerConsole';
 import { VideoFeed } from '@/components/feed/VideoFeed';
+import { HumanOnlyToggle } from '@/components/ui/HumanOnlyToggle';
+import { useToast } from '@/components/ui/Toast';
 import { getStation, STATIONS, stationIndex } from '@/data/stations';
 import { haptics } from '@/lib/haptics';
 import { useFreq } from '@/state/FreqProvider';
@@ -13,7 +16,8 @@ import { useTuner } from '@/state/useTuner';
 import { colors } from '@/theme';
 
 export default function FeedScreen() {
-  const { stationId, humanOnly, muted, hydrated, setStation, setMuted } = useFreq();
+  const { stationId, humanOnly, muted, hydrated, presets, setStation, setMuted, setHumanOnly, savePreset } = useFreq();
+  const toast = useToast();
   const videos = useStationFeed(stationId, humanOnly);
   const tuner = useTuner(stationId, setStation);
   const insets = useSafeAreaInsets();
@@ -21,6 +25,18 @@ export default function FeedScreen() {
 
   const station = getStation(stationId);
   const displayed = tuner.previewIndex !== null ? STATIONS[tuner.previewIndex] : station;
+
+  const toggleHumanOnly = (on: boolean) => {
+    haptics.toggle();
+    setHumanOnly(on);
+    toast(on ? 'Human Only: showing human-made videos' : 'Showing all videos');
+  };
+
+  const storePreset = (slot: number) => {
+    savePreset(slot, stationId);
+    haptics.success();
+    toast(`Saved ${station.frequency.toFixed(1)} ${station.name} to preset ${slot + 1}`);
+  };
 
   return (
     <View style={styles.screen}>
@@ -31,7 +47,11 @@ export default function FeedScreen() {
         holdPlayback={tuner.tuning}
         bottomInset={consoleHeight}
         showStation={stationId === 'all'}
-        emptyMessage={`Nothing on ${station.frequency.toFixed(1)} ${station.name} yet.`}
+        emptyMessage={
+          humanOnly
+            ? `No human-made videos on ${station.frequency.toFixed(1)} ${station.name} yet. Turn off Human Only or be the first to post.`
+            : `Nothing on ${station.frequency.toFixed(1)} ${station.name} yet.`
+        }
       />
 
       <StaticOverlay level={tuner.staticLevel} visible={tuner.staticVisible} />
@@ -42,6 +62,7 @@ export default function FeedScreen() {
           <Text style={styles.wordmark}>FREQ</Text>
         </View>
         <View style={styles.topActions}>
+          <HumanOnlyToggle value={humanOnly} onChange={toggleHumanOnly} />
           <Pressable
             onPress={() => {
               haptics.tap();
@@ -70,7 +91,18 @@ export default function FeedScreen() {
           onTuneStart={tuner.onTuneStart}
           onDetent={tuner.onDetent}
           onTuneEnd={tuner.onTuneEnd}
-        />
+        >
+          <PresetBar
+            presets={presets}
+            current={stationId}
+            onSelect={tuner.tuneTo}
+            onStore={storePreset}
+            onEmptyPress={() => {
+              haptics.tap();
+              toast('Hold a preset to save the current station');
+            }}
+          />
+        </TunerConsole>
       </View>
     </View>
   );
