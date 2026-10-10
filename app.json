@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "Freq",
+    "slug": "freq",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.freq.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Freq uses the camera to record human-made videos.",
+        "NSMicrophoneUsageDescription": "Freq records audio with your videos.",
+        "NSPhotoLibraryUsageDescription": "Freq lets you upload videos from your library."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#07070A",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.freq.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-video",
+      "expo-audio",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Freq uses the camera to record human-made videos.",
+          "microphonePermission": "Freq records audio with your videos.",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Freq lets you upload videos from your library."
+        }
+      ]
+    ],
+    "scheme": "freq",
+    "backgroundColor": "#07070A",
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
