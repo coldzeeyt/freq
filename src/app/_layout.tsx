@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastProvider } from '@/components/ui/Toast';
 import { WebFrame } from '@/components/ui/WebFrame';
+import { useOnAirNotificationRouting } from '@/lib/onAirRouting';
 import { FreqProvider } from '@/state/FreqProvider';
 import { colors } from '@/theme';
 import { FONT_MAP } from '@/theme/fonts';
@@ -17,6 +18,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(FONT_MAP);
+  useOnAirNotificationRouting();
   const ready = fontsLoaded || !!fontError;
 
   useEffect(() => {
@@ -42,6 +44,8 @@ export default function RootLayout() {
                 <Stack.Screen name="talk/post/[id]" options={{ animation: 'slide_from_right' }} />
                 <Stack.Screen name="talk/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
                 <Stack.Screen name="comments/[videoId]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+                <Stack.Screen name="onair/index" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="onair/capture" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
               </Stack>
             </ToastProvider>
           </FreqProvider>

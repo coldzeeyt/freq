@@ -10,6 +10,7 @@ import { isHumanMade } from '@/lib/human';
 import type { Creator, Video, WatchEvent } from '@/types/models';
 import { checkPassword, hashPassword, issueToken, readUser, requireUser, toAccount, type UserRow } from './auth';
 import { migrate, pool } from './db';
+import { createOnAir } from './onair';
 import { talk } from './talk';
 
 const PORT = Number(process.env.PORT ?? 3000);
@@ -163,7 +164,12 @@ app.post('/api/auth/login', route(async (req, res) => {
 
 /** Deletes the account, its posts (and their files), likes and taste profile. */
 app.post('/api/auth/delete', requireUser, route(async (req, res) => {
-  const { rows } = await pool.query<{ uri: string }>('select uri from videos where user_id = $1', [req.user!.id]);
+  const { rows } = await pool.query<{ uri: string }>(
+    `select uri from videos where user_id = $1
+     union all select back_uri from moments where user_id = $1
+     union all select front_uri from moments where user_id = $1`,
+    [req.user!.id],
+  );
   await pool.query(`update comments set deleted = true, body = '', author = null where user_id = $1`, [req.user!.id]);
   await pool.query('delete from users where id = $1', [req.user!.id]);
   rows.forEach((r) => removeMedia(r.uri));
@@ -286,6 +292,7 @@ app.post('/api/events', route(async (req, res) => {
 }));
 
 app.use('/api', talk);
+app.use('/api', createOnAir(MEDIA_DIR, origin, removeMedia));
 
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'Not found.' });

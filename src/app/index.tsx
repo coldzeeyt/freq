@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BandDisplay } from '@/components/dial/BandDisplay';
 import { StaticOverlay } from '@/components/dial/StaticOverlay';
 import { TuningDial } from '@/components/dial/TuningDial';
+import { OnAirButton } from '@/components/onair/OnAirButton';
 import { VideoFeed } from '@/components/feed/VideoFeed';
 import { Avatar } from '@/components/ui/Avatar';
 import { HumanOnlyToggle } from '@/components/ui/HumanOnlyToggle';
@@ -115,6 +116,7 @@ export default function FeedScreen() {
             </View>
             <View style={styles.topActions}>
               <HumanOnlyToggle value={humanOnly} onChange={toggleHumanOnly} />
+              <OnAirButton />
               <Pressable
                 onPress={() => {
                   haptics.tap();
@@ -203,7 +205,7 @@ const styles = StyleSheet.create({
   brand: { flexDirection: 'row', alignItems: 'flex-start', gap: 3 },
   wordmark: { color: colors.text, fontFamily: fonts.heavy, fontSize: 24, letterSpacing: -1 },
   led: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.signal, marginTop: 6 },
-  topActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   postButton: {
     width: 30,
     height: 30,

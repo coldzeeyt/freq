@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
-import type { Account, BoardPost, Comment, Creator, Video } from '@/types/models';
+import type { Account, BoardPost, Comment, Creator, Moment, OnAirToday, Video } from '@/types/models';
 import { emptyProfile } from '../ranking/profile';
-import type { AuthService, LikeService, MediaStore, SignalService, TalkService, VideoService } from '../types';
+import type { AuthService, LikeService, MediaStore, OnAirService, SignalService, TalkService, VideoService } from '../types';
 import { api, ApiError, getToken, setToken } from './client';
 
 type Session = { token: string; account: Account };
@@ -132,6 +132,32 @@ export function createApiTalk(): TalkService {
     },
     async vote(target, value) {
       return (await api<{ score: number }>('/vote', { method: 'POST', json: { targetType: target.type, targetId: target.id, value } })).score;
+    },
+  };
+}
+
+async function appendImage(form: FormData, field: string, uri: string) {
+  if (Platform.OS === 'web') {
+    form.append(field, await (await fetch(uri)).blob(), `${field}.jpg`);
+  } else {
+    form.append(field, { uri, name: `${field}.jpg`, type: 'image/jpeg' } as unknown as Blob);
+  }
+}
+
+export function createApiOnAir(): OnAirService {
+  const tz = () => new Date().getTimezoneOffset();
+  return {
+    today: () => api<OnAirToday>(`/onair?tz=${tz()}`),
+    async post(backUri, frontUri, caption) {
+      const form = new FormData();
+      await appendImage(form, 'back', backUri);
+      await appendImage(form, 'front', frontUri);
+      form.append('caption', caption);
+      form.append('tz', String(tz()));
+      return (await api<{ moment: Moment }>('/onair', { method: 'POST', body: form })).moment;
+    },
+    async remove() {
+      await api(`/onair/delete?tz=${tz()}`, { method: 'POST' });
     },
   };
 }

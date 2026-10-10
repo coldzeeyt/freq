@@ -7,6 +7,8 @@ import type {
   Creator,
   NewAccountInput,
   NewVideoInput,
+  Moment,
+  OnAirToday,
   Preferences,
   StationId,
   Video,
@@ -57,6 +59,15 @@ export interface TalkService {
   vote(target: VoteTarget, value: Vote): Promise<number>;
 }
 
+/** The daily, two-minute, both-cameras moment. */
+export interface OnAirService {
+  today(): Promise<OnAirToday>;
+  /** Local file/blob URIs for the two photos. */
+  post(backUri: string, frontUri: string, caption: string): Promise<Moment>;
+  /** Removes today's moment so you can take it again. */
+  remove(): Promise<void>;
+}
+
 /** Collects interactions and exposes the taste profile the ranking uses. */
 export interface SignalService {
   record(event: WatchEvent, video: Video): Promise<void>;
@@ -79,6 +90,7 @@ export interface Services {
   likes: LikeService;
   signals: SignalService;
   talk: TalkService;
+  onAir: OnAirService;
   preferences: PreferencesService;
   media: MediaStore;
 }

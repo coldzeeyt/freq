@@ -83,6 +83,20 @@ create table if not exists votes (
   primary key (user_id, target_type, target_id)
 );
 
+create table if not exists moments (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  author jsonb not null,
+  day text not null,
+  back_uri text not null,
+  front_uri text not null,
+  caption text not null default '',
+  late boolean not null default false,
+  created_at timestamptz not null default now(),
+  unique (user_id, day)
+);
+create index if not exists moments_day_idx on moments (day);
+
 create table if not exists taste_profiles (
   user_id uuid primary key references users(id) on delete cascade,
   profile jsonb not null,

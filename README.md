@@ -33,6 +33,7 @@ Checks: `npm run typecheck` and `npm run lint`.
 | Account page: profile, Test lab, replay welcome, log out | `src/app/me.tsx` |
 | Human Only toggle + Human badge | `src/lib/human.ts`, `src/components/ui/HumanOnlyToggle.tsx` |
 | Like / share, creator, caption | `src/components/feed/ActionRail.tsx` |
+| On Air: once a day, at a random local time, everyone gets 2 minutes to post a back-and-front camera photo (BeReal-style). You only see others' after posting yours; late posts are tagged | `src/app/onair/`, `src/components/onair/`, `src/lib/onAir.ts`, `server/onair.ts` |
 | Talk: a Reddit-style board per station (posts, up/down votes, Hot/New/Top) and threaded comments on posts and videos | `src/app/talk/`, `src/app/comments/`, `src/components/talk/`, `server/talk.ts` |
 | Post: record with the in-app camera or upload, pick a station, add a caption | `src/app/post.tsx`, `src/components/post/` |
 
@@ -81,6 +82,7 @@ Freq has a real backend in `server/`: Express + Postgres, deployed on Railway as
 - **Feed:** `GET /api/feed?station=comedy&humanOnly=1` returns that station ranked for the signed-in person. The server runs the same ranking code as `src/services/ranking/`, with each person's taste profile stored in Postgres.
 - **Posting:** `POST /api/videos` (multipart) stores the file on a Railway volume (`/data/media`) and serves it at `/media/...` with range requests, so videos stream.
 - **Likes and signals:** likes, watch time and shares update counts and the taste profile.
+- **On Air:** `GET /api/onair?tz=` returns today's window and moments (others' stay hidden until you post); `POST /api/onair` takes `back` and `front` photos. The daily time is derived from the date, so phones schedule their own reminders (expo-notifications) with no push server. Set `FREQ_ONAIR_LIVE=1` locally to open the window immediately for testing.
 - **Deleting:** `POST /api/videos/:id/delete` removes your own post and its file. `POST /api/auth/delete` (Account → Delete account) removes the account, its posts, files, likes and profile.
 - The server creates its tables on start. There are no sample videos: feeds only show what people post, and an empty station asks you to record one.
 

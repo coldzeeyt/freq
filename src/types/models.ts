@@ -107,3 +107,28 @@ export interface Comment {
   myVote: Vote;
   createdAt: string;
 }
+
+// --- On Air (a daily, two-minute, both-cameras moment) -----------------------
+
+export interface Moment {
+  id: string;
+  author: Creator;
+  day: string;
+  backUri: string;
+  frontUri: string;
+  caption: string;
+  /** Posted after the two-minute window closed. */
+  late: boolean;
+  createdAt: string;
+}
+
+export interface OnAirToday {
+  day: string;
+  startsAt: string;
+  endsAt: string;
+  mine: Moment | null;
+  /** Everyone else's moments today. Empty until you've posted yours. */
+  moments: Moment[];
+  /** How many other people have posted today (shown while the feed is locked). */
+  othersCount: number;
+}
