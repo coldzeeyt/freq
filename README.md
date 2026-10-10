@@ -72,16 +72,27 @@ The taste profile lives on the device for now. With a backend, the same function
 
 `routeTags()` scores every station's keyword list against the tags: an exact match is worth 3, a plural/verb form 2 (`dogs` to `dog`), and a tag that contains a keyword 1 (`dogsofinstagram`). Earlier tags weigh slightly more. The top station is chosen, the next ones are offered as "also fits", and you can override it.
 
-## Website (Railway)
+## Server (Railway)
 
-The web build is a static export served by `serve`:
+Freq has a real backend in `server/`: Express + Postgres, deployed on Railway as one service that also serves the web app.
+
+- **Accounts:** sign up / log in with email and password (bcrypt hashes, 30-day signed tokens).
+- **Feed:** `GET /api/feed?station=comedy&humanOnly=1` returns that station ranked for the signed-in person. The server runs the same ranking code as `src/services/ranking/`, with each person's taste profile stored in Postgres.
+- **Posting:** `POST /api/videos` (multipart) stores the file on a Railway volume (`/data/media`) and serves it at `/media/...` with range requests, so videos stream.
+- **Likes and signals:** likes, watch time and shares update counts and the taste profile.
+- On first boot the server creates its tables and loads the 120 starter videos.
+
+Railway setup (project `freq`): a `web` service (this repo; `railway.json` builds the web app and runs `npm run server`), a `Postgres` service, and a `freq-media` volume on `web` at `/data`. `web` has `DATABASE_URL=${{Postgres.DATABASE_URL}}`, `JWT_SECRET`, `MEDIA_DIR=/data/media` and `NODE_ENV=production`.
+
+Run it locally:
 
 ```bash
-npm run build:web   # -> dist/
-npm run serve:web   # serves dist on $PORT (default 3000)
+DATABASE_URL=postgres://... npm run server        # API + built web app on :3000
+EXPO_PUBLIC_API_URL=http://localhost:3000 npx expo start   # point the dev app at it
+EXPO_PUBLIC_BACKEND=mock npx expo start           # or skip the server: everything stays on the device
 ```
 
-`railway.json` tells Railway to run those two commands. On desktop the site shows the app as a phone-width column with keyboard hints beside it.
+The phone app talks to the production server by default. The website calls the server it's served from.
 
 ## Architecture
 
@@ -99,15 +110,11 @@ src/
   state/          FreqProvider (account, station, Human only, likes, mute), feed + tuner hooks
 ```
 
-### Adding a real backend (e.g. Supabase)
+### Swapping backends
 
-The UI only uses the interfaces in `src/services/types.ts`. To move to Supabase:
+The UI only uses the interfaces in `src/services/types.ts`. `src/services/index.ts` picks the server implementations (`api/`) or the offline ones (`mock/`). Moving to another backend (Supabase, etc.) means writing new implementations of those interfaces.
 
-1. Add `src/services/supabase/` with `VideoService` (query a `videos` table filtered by `station_id`, plus the human rule, which can be a computed column or view), `LikeService` (a `likes` table), and `MediaStore` (upload to Supabase Storage and return the public URL).
-2. Switch the factories in `src/services/index.ts`.
-3. Store `origin` server-side and only set `camera` from the app's recording flow. A client-side flag can be faked, so the real backend should verify it (for example with signed upload tokens issued only to the in-app camera).
-
-Swap `services/mock/localAuth.ts` for Supabase Auth: accounts are device-only for now (only a salted SHA-256 of the password is stored). Preferences (station, Human only) can stay device-local. Move `rankFeed` and the taste profile to the server so ranking can use real view counts and the whole catalogue.
+`origin: 'camera'` is still sent by the app, so a determined user could fake it. To make the Human label tamper-proof, have the server issue one-time recording tokens to the camera screen.
 
 ## Notes and limits
 

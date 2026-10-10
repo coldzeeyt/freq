@@ -24,7 +24,7 @@ const DIAL_MARGIN = 10;
 
 export default function FeedScreen() {
   const { stationId, humanOnly, muted, hydrated, account, me, setStation, setMuted, setHumanOnly } = useFreq();
-  const videos = useStationFeed(stationId, humanOnly);
+  const { videos, error: feedError } = useStationFeed(stationId, humanOnly);
   const tuner = useTuner(stationId, setStation);
   const toast = useToast();
   const insets = useSafeAreaInsets();
@@ -78,7 +78,9 @@ export default function FeedScreen() {
           infoBottom={insets.bottom + 18}
           showStation={stationId === 'all'}
           emptyMessage={
-            humanOnly
+            feedError
+              ? feedError
+              : humanOnly
               ? `No human-made videos on ${station.frequency.toFixed(1)} ${station.name} yet. Turn off Human only, or record the first one.`
               : `Nothing on ${station.frequency.toFixed(1)} ${station.name} yet.`
           }

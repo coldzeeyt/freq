@@ -36,19 +36,19 @@ export function FreqProvider({ children }: { children: React.ReactNode }) {
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    Promise.all([services.preferences.load(), services.likes.getLikedIds(), services.auth.currentAccount()]).then(
-      ([saved, liked, acct]) => {
-        setPrefs((p) => ({
-          ...p,
-          humanOnly: saved.humanOnly ?? p.humanOnly,
-          stationId: saved.stationId && known.has(saved.stationId) ? saved.stationId : p.stationId,
-          muted: Platform.OS === 'web' ? true : (saved.muted ?? p.muted),
-        }));
-        setLikedIds(new Set(liked));
-        setAccount(acct);
-        setHydrated(true);
-      },
-    );
+    (async () => {
+      const [saved, acct] = await Promise.all([services.preferences.load(), services.auth.currentAccount()]);
+      const liked = acct ? await services.likes.getLikedIds() : [];
+      setPrefs((p) => ({
+        ...p,
+        humanOnly: saved.humanOnly ?? p.humanOnly,
+        stationId: saved.stationId && known.has(saved.stationId) ? saved.stationId : p.stationId,
+        muted: Platform.OS === 'web' ? true : (saved.muted ?? p.muted),
+      }));
+      setLikedIds(new Set(liked));
+      setAccount(acct);
+      setHydrated(true);
+    })();
   }, []);
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export function FreqProvider({ children }: { children: React.ReactNode }) {
 
   const me = useMemo<Creator>(
     () => ({
-      id: 'me',
+      id: account?.id ?? 'me',
       name: account?.name ?? 'You',
       handle: account?.handle ?? 'you',
       verified: false,
@@ -90,11 +90,18 @@ export function FreqProvider({ children }: { children: React.ReactNode }) {
       hydrated,
       account,
       me,
-      createAccount: async (input) => setAccount(await services.auth.createAccount(input)),
-      signIn: async (email, password) => setAccount(await services.auth.signIn(email, password)),
+      createAccount: async (input) => {
+        setAccount(await services.auth.createAccount(input));
+        setLikedIds(new Set());
+      },
+      signIn: async (email, password) => {
+        setAccount(await services.auth.signIn(email, password));
+        setLikedIds(new Set(await services.likes.getLikedIds()));
+      },
       signOut: async () => {
         await services.auth.signOut();
         setAccount(null);
+        setLikedIds(new Set());
       },
       setStation: (stationId) => update({ stationId }),
       setHumanOnly: (humanOnly) => update({ humanOnly }),

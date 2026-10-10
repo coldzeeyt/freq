@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut, interpolateColor, useAnimatedStyle, useDerivedValue, withTiming } from 'react-native-reanimated';
 import { haptics } from '@/lib/haptics';
+import { backend } from '@/services';
 import { colors, fonts, noWebOutline, radius } from '@/theme';
 import type { NewAccountInput } from '@/types/models';
 
@@ -132,7 +133,7 @@ export function AccountForm({ mode, onModeChange, onCreate, onLogin }: Props) {
           <Text style={styles.switchLink}>{mode === 'create' ? 'Log in' : 'Create one'}</Text>
         </Text>
       </Pressable>
-      <Text style={styles.fine}>Accounts stay on this device until Freq has a server.</Text>
+      {backend === 'device' && <Text style={styles.fine}>Offline mode: this account only lives on this device.</Text>}
     </View>
   );
 }
