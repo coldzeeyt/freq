@@ -289,6 +289,10 @@ app.use('/api', (_req, res) => {
 // --- Files & the web app -----------------------------------------------------
 
 app.use('/media', express.static(MEDIA_DIR, { maxAge: '30d', immutable: true }));
+// A missing file is a 404, not the web app shell.
+app.use('/media', (_req, res) => {
+  res.sendStatus(404);
+});
 if (fs.existsSync(WEB_DIR)) {
   app.use(express.static(WEB_DIR, { index: false, maxAge: '1h' }));
   // Single-page app: every other path gets the shell.
