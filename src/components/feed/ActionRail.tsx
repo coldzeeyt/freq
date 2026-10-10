@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { useToast } from '@/components/ui/Toast';
@@ -49,7 +50,7 @@ export function ActionRail({ video }: { video: Video }) {
       <Pressable
         onPress={() => {
           haptics.tap();
-          toast('Comments aren’t open yet');
+          router.push({ pathname: '/comments/[videoId]', params: { videoId: video.id } });
         }}
         style={styles.item}
         hitSlop={8}

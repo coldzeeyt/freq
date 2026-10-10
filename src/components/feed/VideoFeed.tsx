@@ -3,13 +3,15 @@ import {
   ActivityIndicator,
   FlatList,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { haptics } from '@/lib/haptics';
 import { services } from '@/services';
 import { colors, fonts } from '@/theme';
@@ -26,10 +28,13 @@ interface Props {
   infoRight: number;
   infoBottom: number;
   showStation: boolean;
+  emptyTitle: string;
   emptyMessage: string;
+  emptyAction?: { label: string; icon: keyof typeof Ionicons.glyphMap; onPress: () => void };
 }
 
-export function VideoFeed({ videos, feedKey, muted, holdPlayback, railBottom, infoRight, infoBottom, showStation, emptyMessage }: Props) {
+export function VideoFeed(props: Props) {
+  const { videos, feedKey, muted, holdPlayback, railBottom, infoRight, infoBottom, showStation, emptyTitle, emptyMessage, emptyAction } = props;
   const [height, setHeight] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<FlatList<Video>>(null);
@@ -104,8 +109,22 @@ export function VideoFeed({ videos, feedKey, muted, holdPlayback, railBottom, in
         <ActivityIndicator style={styles.center} color={colors.text} />
       ) : videos.length === 0 ? (
         <Animated.View entering={FadeIn} style={[styles.center, styles.empty]}>
-          <Text style={styles.emptyTitle}>Dead air.</Text>
+          <Ionicons name="radio-outline" size={40} color={colors.signal} />
+          <Text style={styles.emptyTitle}>{emptyTitle}</Text>
           <Text style={styles.emptyText}>{emptyMessage}</Text>
+          {emptyAction && (
+            <Animated.View entering={FadeInDown.delay(200)}>
+              <Pressable
+                onPress={emptyAction.onPress}
+                style={({ pressed }) => [styles.emptyButton, pressed && { transform: [{ scale: 0.97 }] }]}
+                accessibilityRole="button"
+                accessibilityLabel={emptyAction.label}
+              >
+                <Ionicons name={emptyAction.icon} size={18} color={colors.signalInk} />
+                <Text style={styles.emptyButtonText}>{emptyAction.label}</Text>
+              </Pressable>
+            </Animated.View>
+          )}
         </Animated.View>
       ) : (
         <Animated.View key={feedKey} entering={FadeIn.duration(280)} style={styles.container}>
@@ -152,7 +171,18 @@ export function VideoFeed({ videos, feedKey, muted, holdPlayback, railBottom, in
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { gap: 8, paddingHorizontal: 44 },
-  emptyTitle: { color: colors.text, fontFamily: fonts.heavy, fontSize: 22 },
+  empty: { gap: 10, paddingHorizontal: 40 },
+  emptyTitle: { color: colors.text, fontFamily: fonts.heavy, fontSize: 24, textAlign: 'center', letterSpacing: -0.5, lineHeight: 28 },
+  emptyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+    height: 50,
+    paddingHorizontal: 22,
+    borderRadius: 25,
+    backgroundColor: colors.signal,
+  },
+  emptyButtonText: { color: colors.signalInk, fontFamily: fonts.bodyBold, fontSize: 16 },
   emptyText: { color: colors.textDim, fontFamily: fonts.body, fontSize: 14, textAlign: 'center', lineHeight: 20 },
 });

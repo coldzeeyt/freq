@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
+import { InstallTip } from '@/components/ui/InstallTip';
 import { useToast } from '@/components/ui/Toast';
 import { haptics } from '@/lib/haptics';
 import { useFreq } from '@/state/FreqProvider';
@@ -33,6 +34,7 @@ export default function Me() {
       </Animated.View>
 
       <View style={styles.list}>
+        <InstallTip delay={40} />
         <Row delay={80} icon="flask-outline" label="Test lab" sub="Try the dial, haptics, sound, Human only" onPress={() => router.push('/lab')} />
         <Row delay={140} icon="sparkles-outline" label="Replay welcome" sub="See the intro again" onPress={() => router.push('/welcome?replay=1')} />
         <Row

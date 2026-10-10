@@ -70,21 +70,11 @@ export default function Lab() {
           </View>
         </Section>
 
-        <Section title="Sound" sub="The dial’s click and the static between stations." delay={160}>
+        <Section title="Sound" sub="The click the dial makes at each station." delay={160}>
           <View style={styles.row}>
             <Pressable style={styles.ghost} onPress={sounds.playClick}>
               <Ionicons name="radio-button-on-outline" size={15} color={colors.text} />
               <Text style={styles.ghostText}>Click</Text>
-            </Pressable>
-            <Pressable
-              style={styles.ghost}
-              onPress={() => {
-                sounds.startStatic();
-                setTimeout(sounds.stopStatic, 900);
-              }}
-            >
-              <Ionicons name="pulse-outline" size={15} color={colors.text} />
-              <Text style={styles.ghostText}>Static</Text>
             </Pressable>
           </View>
         </Section>

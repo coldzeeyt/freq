@@ -9,7 +9,7 @@ const STATIC_PEAK = 0.82;
 const FADE_MS = 380;
 
 /**
- * Choreographs a station change: static fades in while the dial turns, each
+ * Choreographs a station change: visual static fades in while the dial turns, each
  * detent clicks + ticks a haptic, and the station locks in with a firmer bump.
  */
 export function useTuner(stationId: StationId, setStation: (id: StationId) => void) {
@@ -37,8 +37,7 @@ export function useTuner(stationId: StationId, setStation: (id: StationId) => vo
     showStatic();
     staticLevel.set(withTiming(STATIC_PEAK, { duration: 140 }));
     setPreviewIndex(stationIndex(stationId));
-    sounds.startStatic();
-  }, [showStatic, staticLevel, stationId, sounds]);
+  }, [showStatic, staticLevel, stationId]);
 
   const onDetent = useCallback(
     (index: number) => {
@@ -52,7 +51,6 @@ export function useTuner(stationId: StationId, setStation: (id: StationId) => vo
   const onTuneEnd = useCallback(
     (index: number) => {
       const next = STATIONS[index].id;
-      sounds.stopStatic();
       setPreviewIndex(null);
       if (next !== stationId) {
         haptics.lockIn();
@@ -60,7 +58,7 @@ export function useTuner(stationId: StationId, setStation: (id: StationId) => vo
       }
       fadeStatic(next !== stationId ? 160 : 0);
     },
-    [sounds, stationId, setStation, fadeStatic],
+    [stationId, setStation, fadeStatic],
   );
 
   /** Jump straight to a station (presets) with a short burst of static. */
@@ -72,10 +70,8 @@ export function useTuner(stationId: StationId, setStation: (id: StationId) => vo
       }
       showStatic();
       staticLevel.set(withSequence(withTiming(STATIC_PEAK, { duration: 90 }), withTiming(STATIC_PEAK, { duration: 160 })));
-      sounds.startStatic();
-      sounds.playClick();
+        sounds.playClick();
       haptics.lockIn();
-      setTimeout(() => sounds.stopStatic(), 260);
       setStation(id);
       fadeStatic(250);
     },

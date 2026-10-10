@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 /** Production server. The web build is served by it, so the browser can use relative URLs. */
-const PRODUCTION = 'https://web-production-92bf4d.up.railway.app';
+const PRODUCTION = 'https://freqfm.up.railway.app';
 
 export const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? (Platform.OS === 'web' ? '' : PRODUCTION)).replace(/\/$/, '');
 

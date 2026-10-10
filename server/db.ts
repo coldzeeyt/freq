@@ -1,5 +1,4 @@
 import pg from 'pg';
-import { MOCK_VIDEOS } from '@/data/mockVideos';
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('DATABASE_URL is not set');
@@ -48,6 +47,42 @@ create table if not exists likes (
   primary key (user_id, video_id)
 );
 
+create table if not exists posts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade,
+  author jsonb not null,
+  station_id text not null,
+  title text not null,
+  body text not null default '',
+  score integer not null default 1,
+  comment_count integer not null default 0,
+  created_at timestamptz not null default now()
+);
+create index if not exists posts_station_idx on posts (station_id, created_at desc);
+
+-- Comments hang off a board post or a video. Deleted ones keep their row so replies stay threaded.
+create table if not exists comments (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete set null,
+  author jsonb,
+  target_type text not null check (target_type in ('post', 'video')),
+  target_id text not null,
+  parent_id uuid references comments(id) on delete cascade,
+  body text not null,
+  deleted boolean not null default false,
+  score integer not null default 1,
+  created_at timestamptz not null default now()
+);
+create index if not exists comments_target_idx on comments (target_type, target_id);
+
+create table if not exists votes (
+  user_id uuid not null references users(id) on delete cascade,
+  target_type text not null check (target_type in ('post', 'comment')),
+  target_id uuid not null,
+  value smallint not null check (value in (-1, 1)),
+  primary key (user_id, target_type, target_id)
+);
+
 create table if not exists taste_profiles (
   user_id uuid primary key references users(id) on delete cascade,
   profile jsonb not null,
@@ -57,40 +92,7 @@ create table if not exists taste_profiles (
 
 export async function migrate() {
   await pool.query(SCHEMA);
-  const { rows } = await pool.query('select count(*)::int as n from videos');
-  if (rows[0].n > 0) return;
-  // First boot: load the starter catalogue so every station has something on air.
-  const client = await pool.connect();
-  try {
-    await client.query('begin');
-    for (const v of MOCK_VIDEOS) {
-      await client.query(
-        `insert into videos (id, creator, uri, thumbnail, station_id, tags, caption, origin, views, likes, comments, shares, created_at)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, now() - ($13 || ' hours')::interval)`,
-        [
-          v.id,
-          v.creator,
-          v.uri,
-          v.thumbnail ?? null,
-          v.stationId,
-          v.tags,
-          v.caption,
-          v.origin,
-          v.views,
-          v.likes,
-          v.comments,
-          v.shares,
-          // Keep the catalogue's relative ages, anchored to now.
-          String(Math.round((Date.UTC(2026, 9, 10) - Date.parse(v.createdAt)) / 3_600_000)),
-        ],
-      );
-    }
-    await client.query('commit');
-    console.log(`seeded ${MOCK_VIDEOS.length} videos`);
-  } catch (e) {
-    await client.query('rollback');
-    throw e;
-  } finally {
-    client.release();
-  }
+  // Freq used to ship with sample clips; the catalogue is now only what people post.
+  const removed = await pool.query("delete from videos where id like 'mock-%'");
+  if (removed.rowCount) console.log(`removed ${removed.rowCount} sample videos`);
 }

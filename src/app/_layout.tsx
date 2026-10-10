@@ -38,6 +38,10 @@ export default function RootLayout() {
                 <Stack.Screen name="post" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
                 <Stack.Screen name="me" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
                 <Stack.Screen name="lab" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="talk/[station]" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="talk/post/[id]" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="talk/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+                <Stack.Screen name="comments/[videoId]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
               </Stack>
             </ToastProvider>
           </FreqProvider>

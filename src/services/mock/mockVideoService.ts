@@ -1,4 +1,3 @@
-import { MOCK_VIDEOS } from '@/data/mockVideos';
 import { isHumanMade } from '@/lib/human';
 import { normalizeTag } from '@/lib/tagRouting';
 import type { StationId, Video } from '@/types/models';
@@ -20,7 +19,7 @@ export function createMockVideoService(signals: SignalService): VideoService {
   }
 
   async function candidates(stationId: StationId, humanOnly: boolean) {
-    const all = [...(await loadMyPosts()), ...MOCK_VIDEOS];
+    const all = await loadMyPosts();
     return all.filter((v) => (stationId === 'all' || v.stationId === stationId) && (!humanOnly || isHumanMade(v)));
   }
 

@@ -1,4 +1,4 @@
-// Generates the procedural sound + texture assets used by the tuning effect.
+// Generates the dial click sound and the visual static frames used while tuning.
 // Run with: node scripts/generate-assets.mjs
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
@@ -42,28 +42,6 @@ function wav(samples, sampleRate = 22050) {
     out.push(env * (0.55 * (Math.random() * 2 - 1) + 0.6 * Math.sin(2 * Math.PI * 2400 * t)));
   }
   writeFileSync(join(soundDir, 'click.wav'), wav(out, sr));
-}
-
-// Radio static: band-limited noise with a slow wobble. Loops seamlessly-ish.
-{
-  const sr = 22050;
-  const n = sr * 1;
-  const out = [];
-  let lp = 0;
-  for (let i = 0; i < n; i++) {
-    const t = i / sr;
-    lp = lp * 0.55 + (Math.random() * 2 - 1) * 0.45;
-    const wobble = 0.75 + 0.25 * Math.sin(2 * Math.PI * 3 * t);
-    out.push(lp * 0.5 * wobble);
-  }
-  // crossfade the ends so the loop does not pop
-  const fade = 400;
-  for (let i = 0; i < fade; i++) {
-    const k = i / fade;
-    out[i] *= k;
-    out[n - 1 - i] *= k;
-  }
-  writeFileSync(join(soundDir, 'static.wav'), wav(out, sr));
 }
 
 // --- PNG noise frames --------------------------------------------------

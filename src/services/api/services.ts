@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
-import type { Account, Creator, Video } from '@/types/models';
+import type { Account, BoardPost, Comment, Creator, Video } from '@/types/models';
 import { emptyProfile } from '../ranking/profile';
-import type { AuthService, LikeService, MediaStore, SignalService, VideoService } from '../types';
+import type { AuthService, LikeService, MediaStore, SignalService, TalkService, VideoService } from '../types';
 import { api, ApiError, getToken, setToken } from './client';
 
 type Session = { token: string; account: Account };
@@ -106,4 +106,32 @@ export function createApiSignals(): SignalService {
 /** Files go straight to the server in createVideo, so nothing to do locally. */
 export function createApiMediaStore(): MediaStore {
   return { persist: async (uri) => uri };
+}
+
+export function createApiTalk(): TalkService {
+  const path = (t: { type: 'post' | 'video'; id: string }) => `/${t.type === 'post' ? 'posts' : 'videos'}/${encodeURIComponent(t.id)}`;
+  return {
+    async listPosts(stationId, sort) {
+      return (await api<{ posts: BoardPost[] }>(`/boards/${encodeURIComponent(stationId)}/posts?sort=${sort}`)).posts;
+    },
+    getPost: (id) => api(`/posts/${encodeURIComponent(id)}`),
+    async createPost(stationId, title, body) {
+      return (await api<{ post: BoardPost }>(`/boards/${encodeURIComponent(stationId)}/posts`, { method: 'POST', json: { title, body } })).post;
+    },
+    async deletePost(id) {
+      await api(`/posts/${encodeURIComponent(id)}/delete`, { method: 'POST' });
+    },
+    async listComments(target) {
+      return (await api<{ comments: Comment[] }>(`${path(target)}/comments`)).comments;
+    },
+    async addComment(target, body, parentId) {
+      return (await api<{ comment: Comment }>(`${path(target)}/comments`, { method: 'POST', json: { body, parentId } })).comment;
+    },
+    async deleteComment(id) {
+      await api(`/comments/${encodeURIComponent(id)}/delete`, { method: 'POST' });
+    },
+    async vote(target, value) {
+      return (await api<{ score: number }>('/vote', { method: 'POST', json: { targetType: target.type, targetId: target.id, value } })).score;
+    },
+  };
 }

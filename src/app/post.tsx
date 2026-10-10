@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -23,7 +23,9 @@ export default function PostScreen() {
   const insets = useSafeAreaInsets();
   const { setStation, me } = useFreq();
   const toast = useToast();
-  const [step, setStep] = useState<Step>({ kind: 'choose' });
+  // "Record one now" on an empty feed opens straight into the camera.
+  const { start } = useLocalSearchParams<{ start?: string }>();
+  const [step, setStep] = useState<Step>(start === 'record' ? { kind: 'record' } : { kind: 'choose' });
   const [posting, setPosting] = useState(false);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));

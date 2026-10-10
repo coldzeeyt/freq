@@ -1,4 +1,19 @@
-import type { Account, Creator, NewAccountInput, NewVideoInput, Preferences, StationId, Video, WatchEvent } from '@/types/models';
+import type {
+  Account,
+  BoardPost,
+  BoardSort,
+  Comment,
+  CommentTarget,
+  Creator,
+  NewAccountInput,
+  NewVideoInput,
+  Preferences,
+  StationId,
+  Video,
+  Vote,
+  VoteTarget,
+  WatchEvent,
+} from '@/types/models';
 import type { TasteProfile } from './ranking/profile';
 
 /**
@@ -29,6 +44,19 @@ export interface AuthService {
   deleteAccount(): Promise<void>;
 }
 
+/** Reddit-style boards per station, plus threaded comments on posts and videos. */
+export interface TalkService {
+  listPosts(stationId: StationId, sort: BoardSort): Promise<BoardPost[]>;
+  getPost(id: string): Promise<{ post: BoardPost; comments: Comment[] }>;
+  createPost(stationId: StationId, title: string, body: string): Promise<BoardPost>;
+  deletePost(id: string): Promise<void>;
+  listComments(target: CommentTarget): Promise<Comment[]>;
+  addComment(target: CommentTarget, body: string, parentId: string | null): Promise<Comment>;
+  deleteComment(id: string): Promise<void>;
+  /** Returns the new score. */
+  vote(target: VoteTarget, value: Vote): Promise<number>;
+}
+
 /** Collects interactions and exposes the taste profile the ranking uses. */
 export interface SignalService {
   record(event: WatchEvent, video: Video): Promise<void>;
@@ -50,6 +78,7 @@ export interface Services {
   videos: VideoService;
   likes: LikeService;
   signals: SignalService;
+  talk: TalkService;
   preferences: PreferencesService;
   media: MediaStore;
 }

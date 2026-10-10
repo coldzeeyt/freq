@@ -10,6 +10,7 @@ import { isHumanMade } from '@/lib/human';
 import type { Creator, Video, WatchEvent } from '@/types/models';
 import { checkPassword, hashPassword, issueToken, readUser, requireUser, toAccount, type UserRow } from './auth';
 import { migrate, pool } from './db';
+import { talk } from './talk';
 
 const PORT = Number(process.env.PORT ?? 3000);
 const ROOT = path.resolve(__dirname, '..');
@@ -163,6 +164,7 @@ app.post('/api/auth/login', route(async (req, res) => {
 /** Deletes the account, its posts (and their files), likes and taste profile. */
 app.post('/api/auth/delete', requireUser, route(async (req, res) => {
   const { rows } = await pool.query<{ uri: string }>('select uri from videos where user_id = $1', [req.user!.id]);
+  await pool.query(`update comments set deleted = true, body = '', author = null where user_id = $1`, [req.user!.id]);
   await pool.query('delete from users where id = $1', [req.user!.id]);
   rows.forEach((r) => removeMedia(r.uri));
   res.json({ ok: true });
@@ -239,6 +241,7 @@ app.post('/api/videos/:id/delete', requireUser, route(async (req, res) => {
   ]);
   if (!rows[0]) return void res.status(404).json({ error: 'That isn’t your video.' });
   removeMedia(rows[0].uri);
+  await pool.query(`delete from comments where target_type = 'video' and target_id = $1`, [String(req.params.id)]);
   res.json({ ok: true });
 }));
 
@@ -282,6 +285,8 @@ app.post('/api/events', route(async (req, res) => {
   res.json({ ok: true });
 }));
 
+app.use('/api', talk);
+
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'Not found.' });
 });
@@ -293,10 +298,47 @@ app.use('/media', express.static(MEDIA_DIR, { maxAge: '30d', immutable: true }))
 app.use('/media', (_req, res) => {
   res.sendStatus(404);
 });
+// Tags that make "Add to Home Screen" open Freq full-screen like an app, with its own icon,
+// no browser bars, no pinch-zoom and no rubber-band page scrolling.
+const APP_HEAD = `
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0E0D0B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Freq">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  html, body { background: #0E0D0B; overscroll-behavior: none; }
+  * { -webkit-tap-highlight-color: transparent; }
+  body { -webkit-touch-callout: none; }
+</style>
+<script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));</script>
+`;
+
+function appShell() {
+  const html = fs.readFileSync(path.join(WEB_DIR, 'index.html'), 'utf8');
+  return html
+    .replace(/<meta name="viewport"[^>]*>/, '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">')
+    .replace(/<title>[^<]*<\/title>/, '<title>Freq</title>')
+    .replace('</head>', `${APP_HEAD}</head>`);
+}
+
 if (fs.existsSync(WEB_DIR)) {
+  const shell = appShell();
+  const sendShell = (_req: Request, res: express.Response) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.type('html').send(shell);
+  };
+  app.get('/', sendShell);
+  app.get('/index.html', sendShell);
+  app.get('/sw.js', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(path.join(WEB_DIR, 'sw.js'));
+  });
   app.use(express.static(WEB_DIR, { index: false, maxAge: '1h' }));
   // Single-page app: every other path gets the shell.
-  app.get('/{*path}', (_req, res) => res.sendFile(path.join(WEB_DIR, 'index.html')));
+  app.get('/{*path}', sendShell);
 }
 
 app.use((err: Error, _req: Request, res: express.Response, _next: express.NextFunction) => {

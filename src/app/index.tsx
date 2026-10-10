@@ -24,7 +24,7 @@ const DIAL_MARGIN = 10;
 
 export default function FeedScreen() {
   const { stationId, humanOnly, muted, hydrated, account, me, setStation, setMuted, setHumanOnly } = useFreq();
-  const { videos, error: feedError } = useStationFeed(stationId, humanOnly);
+  const { videos, error: feedError, retry: retryFeed } = useStationFeed(stationId, humanOnly);
   const tuner = useTuner(stationId, setStation);
   const toast = useToast();
   const insets = useSafeAreaInsets();
@@ -77,12 +77,25 @@ export default function FeedScreen() {
           infoRight={DIAL + DIAL_MARGIN * 2}
           infoBottom={insets.bottom + 18}
           showStation={stationId === 'all'}
+          emptyTitle={feedError ? 'No signal.' : 'There aren’t enough videos on Freq yet.'}
           emptyMessage={
             feedError
               ? feedError
-              : humanOnly
-              ? `No human-made videos on ${station.frequency.toFixed(1)} ${station.name} yet. Turn off Human only, or record the first one.`
-              : `Nothing on ${station.frequency.toFixed(1)} ${station.name} yet.`
+              : stationId === 'all'
+                ? 'Be one of the first to go on air. Record one now!'
+                : `Be the first on ${station.frequency.toFixed(1)} ${station.name}. Record one now!`
+          }
+          emptyAction={
+            feedError
+              ? { label: 'Try again', icon: 'refresh', onPress: retryFeed }
+              : {
+                  label: 'Record one now',
+                  icon: 'radio-button-on',
+                  onPress: () => {
+                    haptics.tap();
+                    router.push({ pathname: '/post', params: { start: 'record' } });
+                  },
+                }
           }
         />
 
@@ -130,6 +143,19 @@ export default function FeedScreen() {
             tuning={tuner.tuning}
             bandOnlyWhileTuning
             trailing={
+              <View style={styles.readoutActions}>
+              <Pressable
+                onPress={() => {
+                  haptics.tap();
+                  router.push({ pathname: '/talk/[station]', params: { station: stationId } });
+                }}
+                hitSlop={10}
+                style={styles.talk}
+                accessibilityLabel={`${station.name} Talk`}
+              >
+                <Ionicons name="chatbubbles-outline" size={16} color={colors.text} />
+                <Text style={styles.talkText}>Talk</Text>
+              </Pressable>
               <Pressable
                 onPress={() => {
                   haptics.tap();
@@ -146,6 +172,7 @@ export default function FeedScreen() {
                 )}
                 <Ionicons name={muted ? 'volume-mute-outline' : 'volume-high-outline'} size={18} color={colors.textDim} />
               </Pressable>
+              </View>
             }
           />
         </View>
@@ -186,6 +213,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.signal,
   },
   mute: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  readoutActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  talk: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.lineStrong,
+    backgroundColor: 'rgba(14,13,11,0.35)',
+  },
+  talkText: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 12 },
   soundHintText: { color: colors.textFaint, fontFamily: fonts.mono, fontSize: 10 },
   dial: { position: 'absolute', right: DIAL_MARGIN },
 });

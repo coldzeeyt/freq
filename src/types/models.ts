@@ -76,3 +76,34 @@ export type WatchEvent =
   | { type: 'watch'; videoId: string; watchedMs: number; durationMs: number }
   | { type: 'like'; videoId: string; liked: boolean }
   | { type: 'share'; videoId: string };
+
+// --- Talk (Reddit-style boards and threaded comments) ---------------------
+
+export type Vote = -1 | 0 | 1;
+export type BoardSort = 'hot' | 'new' | 'top';
+export type CommentTarget = { type: 'post' | 'video'; id: string };
+export type VoteTarget = { type: 'post' | 'comment'; id: string };
+
+export interface BoardPost {
+  id: string;
+  stationId: StationId;
+  title: string;
+  body: string;
+  author: Creator;
+  score: number;
+  myVote: Vote;
+  commentCount: number;
+  createdAt: string;
+}
+
+export interface Comment {
+  id: string;
+  parentId: string | null;
+  /** Empty when deleted; the comment stays so its replies keep their place. */
+  body: string;
+  author: Creator | null;
+  deleted: boolean;
+  score: number;
+  myVote: Vote;
+  createdAt: string;
+}
