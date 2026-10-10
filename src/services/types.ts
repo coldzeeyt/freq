@@ -1,4 +1,4 @@
-import type { NewVideoInput, Preferences, StationId, Video, WatchEvent } from '@/types/models';
+import type { Account, Creator, NewAccountInput, NewVideoInput, Preferences, StationId, Video, WatchEvent } from '@/types/models';
 import type { TasteProfile } from './ranking/profile';
 
 /**
@@ -9,9 +9,7 @@ import type { TasteProfile } from './ranking/profile';
 export interface VideoService {
   /** A ranked feed for one station. */
   getFeed(query: { stationId: StationId; humanOnly: boolean }): Promise<Video[]>;
-  /** Unranked catalogue counts per station (for the station sheet). */
-  countByStation(humanOnly: boolean): Promise<Record<StationId, number>>;
-  createVideo(input: NewVideoInput): Promise<Video>;
+  createVideo(input: NewVideoInput, author: Creator): Promise<Video>;
   /** Fires whenever the catalogue changes (e.g. after a post). */
   subscribe(listener: () => void): () => void;
 }
@@ -19,6 +17,14 @@ export interface VideoService {
 export interface LikeService {
   getLikedIds(): Promise<string[]>;
   setLiked(videoId: string, liked: boolean): Promise<void>;
+}
+
+/** Sign-up / sign-in. Swap for Supabase Auth later. */
+export interface AuthService {
+  currentAccount(): Promise<Account | null>;
+  createAccount(input: NewAccountInput): Promise<Account>;
+  signIn(email: string, password: string): Promise<Account>;
+  signOut(): Promise<void>;
 }
 
 /** Collects interactions and exposes the taste profile the ranking uses. */
@@ -38,6 +44,7 @@ export interface MediaStore {
 }
 
 export interface Services {
+  auth: AuthService;
   videos: VideoService;
   likes: LikeService;
   signals: SignalService;

@@ -1,3 +1,4 @@
+import { createLocalAuth } from './mock/localAuth';
 import { createLocalMediaStore } from './mock/localMediaStore';
 import { createLocalPreferences } from './mock/localPreferences';
 import { createLocalSignals } from './mock/localSignals';
@@ -9,6 +10,7 @@ import type { Services } from './types';
 const signals = createLocalSignals();
 
 export const services: Services = {
+  auth: createLocalAuth(),
   videos: createMockVideoService(signals),
   signals,
   likes: createMockLikeService(),

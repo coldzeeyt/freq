@@ -1,26 +1,27 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
-import { DEFAULT_PINNED, STATIONS } from '@/data/stations';
+import { STATIONS } from '@/data/stations';
 import { services } from '@/services';
-import type { Preferences, StationId, Video } from '@/types/models';
-
-export const MAX_PINNED = 8;
+import type { Account, Creator, NewAccountInput, Preferences, StationId, Video } from '@/types/models';
 
 const DEFAULT_PREFS: Preferences = {
   stationId: 'all',
   humanOnly: false,
-  pinned: DEFAULT_PINNED,
   // Browsers block autoplay with sound until the user interacts, so start muted on web.
   muted: Platform.OS === 'web',
 };
 
 interface FreqContextValue extends Preferences {
   hydrated: boolean;
+  account: Account | null;
+  /** The signed-in user as a video author. */
+  me: Creator;
+  createAccount: (input: NewAccountInput) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
   setStation: (id: StationId) => void;
   setHumanOnly: (on: boolean) => void;
   setMuted: (muted: boolean) => void;
-  /** Returns false when the bar is already full. */
-  togglePin: (id: StationId) => boolean;
   likedIds: ReadonlySet<string>;
   toggleLike: (video: Video) => boolean;
 }
@@ -31,20 +32,23 @@ const known = new Set(STATIONS.map((s) => s.id));
 export function FreqProvider({ children }: { children: React.ReactNode }) {
   const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFS);
   const [hydrated, setHydrated] = useState(false);
+  const [account, setAccount] = useState<Account | null>(null);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    Promise.all([services.preferences.load(), services.likes.getLikedIds()]).then(([saved, liked]) => {
-      setPrefs((p) => ({
-        ...p,
-        ...saved,
-        stationId: saved.stationId && known.has(saved.stationId) ? saved.stationId : p.stationId,
-        pinned: (saved.pinned ?? p.pinned).filter((id) => known.has(id)),
-        muted: Platform.OS === 'web' ? true : (saved.muted ?? p.muted),
-      }));
-      setLikedIds(new Set(liked));
-      setHydrated(true);
-    });
+    Promise.all([services.preferences.load(), services.likes.getLikedIds(), services.auth.currentAccount()]).then(
+      ([saved, liked, acct]) => {
+        setPrefs((p) => ({
+          ...p,
+          humanOnly: saved.humanOnly ?? p.humanOnly,
+          stationId: saved.stationId && known.has(saved.stationId) ? saved.stationId : p.stationId,
+          muted: Platform.OS === 'web' ? true : (saved.muted ?? p.muted),
+        }));
+        setLikedIds(new Set(liked));
+        setAccount(acct);
+        setHydrated(true);
+      },
+    );
   }, []);
 
   useEffect(() => {
@@ -52,16 +56,6 @@ export function FreqProvider({ children }: { children: React.ReactNode }) {
   }, [prefs, hydrated]);
 
   const update = useCallback((patch: Partial<Preferences>) => setPrefs((p) => ({ ...p, ...patch })), []);
-
-  const togglePin = useCallback(
-    (id: StationId) => {
-      const has = prefs.pinned.includes(id);
-      if (!has && prefs.pinned.length >= MAX_PINNED) return false;
-      update({ pinned: has ? prefs.pinned.filter((p) => p !== id) : [...prefs.pinned, id] });
-      return true;
-    },
-    [prefs.pinned, update],
-  );
 
   const toggleLike = useCallback(
     (video: Video) => {
@@ -79,18 +73,36 @@ export function FreqProvider({ children }: { children: React.ReactNode }) {
     [likedIds],
   );
 
+  const me = useMemo<Creator>(
+    () => ({
+      id: 'me',
+      name: account?.name ?? 'You',
+      handle: account?.handle ?? 'you',
+      verified: false,
+      avatarColor: '#EDE6D6',
+    }),
+    [account],
+  );
+
   const value = useMemo<FreqContextValue>(
     () => ({
       ...prefs,
       hydrated,
+      account,
+      me,
+      createAccount: async (input) => setAccount(await services.auth.createAccount(input)),
+      signIn: async (email, password) => setAccount(await services.auth.signIn(email, password)),
+      signOut: async () => {
+        await services.auth.signOut();
+        setAccount(null);
+      },
       setStation: (stationId) => update({ stationId }),
       setHumanOnly: (humanOnly) => update({ humanOnly }),
       setMuted: (muted) => update({ muted }),
-      togglePin,
       likedIds,
       toggleLike,
     }),
-    [prefs, hydrated, update, togglePin, likedIds, toggleLike],
+    [prefs, hydrated, account, me, update, likedIds, toggleLike],
   );
 
   return <FreqContext.Provider value={value}>{children}</FreqContext.Provider>;

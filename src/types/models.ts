@@ -53,9 +53,22 @@ export interface NewVideoInput {
 export interface Preferences {
   stationId: StationId;
   humanOnly: boolean;
-  /** Stations shown in the bottom bar, in order. */
-  pinned: StationId[];
   muted: boolean;
+}
+
+export interface Account {
+  id: string;
+  name: string;
+  handle: string;
+  email: string;
+  createdAt: string;
+}
+
+export interface NewAccountInput {
+  name: string;
+  handle: string;
+  email: string;
+  password: string;
 }
 
 /** What the ranking learns from. */

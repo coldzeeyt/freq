@@ -1,5 +1,4 @@
 import { MOCK_VIDEOS } from '@/data/mockVideos';
-import { ME } from '@/data/mockCreators';
 import { isHumanMade } from '@/lib/human';
 import { normalizeTag } from '@/lib/tagRouting';
 import type { StationId, Video } from '@/types/models';
@@ -28,16 +27,10 @@ export function createMockVideoService(signals: SignalService): VideoService {
   return {
     async getFeed({ stationId, humanOnly }) {
       const [pool, profile] = await Promise.all([candidates(stationId, humanOnly), signals.getProfile()]);
-      return rankFeed(pool, profile, { stationId, seed: SESSION_SEED, viewerId: ME.id });
+      return rankFeed(pool, profile, { stationId, seed: SESSION_SEED, viewerId: 'me' });
     },
 
-    async countByStation(humanOnly) {
-      const counts: Record<StationId, number> = {};
-      for (const v of await candidates('all', humanOnly)) counts[v.stationId] = (counts[v.stationId] ?? 0) + 1;
-      return counts;
-    },
-
-    async createVideo(input) {
+    async createVideo(input, author) {
       const posts = await loadMyPosts();
       const video: Video = {
         id: `local-${Date.now()}`,
@@ -45,7 +38,7 @@ export function createMockVideoService(signals: SignalService): VideoService {
         stationId: input.stationId,
         tags: [...new Set(input.tags.map(normalizeTag).filter(Boolean))],
         caption: input.caption.trim(),
-        creator: ME,
+        creator: author,
         origin: input.origin,
         views: 0,
         likes: 0,

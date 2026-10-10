@@ -41,8 +41,6 @@ export const POSTABLE_STATIONS = STATIONS.filter((st) => st.id !== 'all');
 
 export const STATION_GROUPS = ['Entertainment', 'Lifestyle', 'Culture', 'Knowledge', 'Outside'] as const;
 
-export const DEFAULT_PINNED: StationId[] = ['all', 'comedy', 'music', 'gaming', 'sports', 'food', 'pets'];
-
 export const FREQ_MIN = 87.5;
 export const FREQ_MAX = 108.5;
 

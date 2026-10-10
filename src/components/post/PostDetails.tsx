@@ -15,7 +15,7 @@ import {
 import Animated, { FadeIn, FadeInDown, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HumanBadge } from '@/components/feed/HumanBadge';
-import { ME } from '@/data/mockCreators';
+import { useFreq } from '@/state/FreqProvider';
 import { getStation } from '@/data/stations';
 import { haptics } from '@/lib/haptics';
 import { hashtagsIn, routeTags } from '@/lib/tagRouting';
@@ -45,7 +45,8 @@ export function PostDetails({ uri, origin, posting, onBack, onPost }: Props) {
     p.muted = true;
     p.play();
   });
-  const human = origin === 'camera' || ME.verified;
+  const { me } = useFreq();
+  const human = origin === 'camera' || me.verified;
 
   // Tags typed in + hashtags written in the caption both count.
   const allTags = useMemo(() => [...new Set([...tags, ...hashtagsIn(caption)])], [tags, caption]);

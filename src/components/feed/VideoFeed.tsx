@@ -24,11 +24,12 @@ interface Props {
   holdPlayback: boolean;
   railBottom: number;
   infoRight: number;
+  infoBottom: number;
   showStation: boolean;
   emptyMessage: string;
 }
 
-export function VideoFeed({ videos, feedKey, muted, holdPlayback, railBottom, infoRight, showStation, emptyMessage }: Props) {
+export function VideoFeed({ videos, feedKey, muted, holdPlayback, railBottom, infoRight, infoBottom, showStation, emptyMessage }: Props) {
   const [height, setHeight] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<FlatList<Video>>(null);
@@ -122,6 +123,7 @@ export function VideoFeed({ videos, feedKey, muted, holdPlayback, railBottom, in
                 holdPlayback={holdPlayback}
                 railBottom={railBottom}
                 infoRight={infoRight}
+                infoBottom={infoBottom}
                 showStation={showStation}
                 onDuration={onDuration}
               />

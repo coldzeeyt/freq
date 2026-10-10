@@ -13,10 +13,10 @@ export function WebFrame({ children }: { children: React.ReactNode }) {
     <View style={styles.page}>
       <View style={styles.side}>
         <Text style={styles.wordmark}>freq</Text>
-        <Text style={styles.lede}>Short videos, tuned like a radio. Pick a station instead of an algorithm deciding everything for you.</Text>
+        <Text style={styles.lede}>Short videos, tuned like a radio. Spin the dial to pick a station, and switch on Human only to filter out AI and unverified videos.</Text>
         <View style={styles.keys}>
           <Key k="↑ ↓" label="next / previous video" />
-          <Key k="← →" label="tune stations" />
+          <Key k="← →" label="turn the dial one station" />
           <Key k="drag" label="turn the dial" />
           <Key k="2× click" label="like" />
         </View>

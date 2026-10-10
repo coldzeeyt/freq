@@ -21,7 +21,7 @@ type Step = { kind: 'choose' } | { kind: 'record' } | { kind: 'details'; uri: st
 
 export default function PostScreen() {
   const insets = useSafeAreaInsets();
-  const { setStation } = useFreq();
+  const { setStation, me } = useFreq();
   const toast = useToast();
   const [step, setStep] = useState<Step>({ kind: 'choose' });
   const [posting, setPosting] = useState(false);
@@ -39,7 +39,7 @@ export default function PostScreen() {
     setPosting(true);
     try {
       const uri = await services.media.persist(step.uri);
-      await services.videos.createVideo({ localUri: uri, stationId: target, tags, caption, origin: step.origin });
+      await services.videos.createVideo({ localUri: uri, stationId: target, tags, caption, origin: step.origin }, me);
       haptics.success();
       setStation(target);
       const s = getStation(target);

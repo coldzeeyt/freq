@@ -15,7 +15,7 @@ Then:
 
 - **Phone:** scan the QR code with Expo Go (Android) or the Camera app (iOS).
 - **iOS Simulator:** press `i` (needs Xcode on a Mac).
-- **Web:** press `w`. Mouse wheel or ↑ ↓ change videos, ← → tune stations, double-click likes.
+- **Web:** press `w`. Mouse wheel or ↑ ↓ change videos, ← → turn the dial one station, double-click likes.
 
 Checks: `npm run typecheck` and `npm run lint`.
 
@@ -24,11 +24,13 @@ Checks: `npm run typecheck` and `npm run lint`.
 | Feature | Where |
 | --- | --- |
 | Vertical feed: full-screen paging, autoplay, tap to pause, loop, progress bar | `src/components/feed/` |
-| The Dial: rotary knob with one detent per station, live frequency readout, static and sound while tuning | `src/components/dial/`, `src/state/useTuner.ts` |
+| The Dial: the only way to change station. Rotary knob with one detent per station, live frequency readout, static and sound while tuning | `src/components/dial/`, `src/state/useTuner.ts` |
 | 25 stations (All + 24 topics), 5 mock videos each | `src/data/stations.ts`, `src/data/mockVideos.ts` |
 | Tag routing: a post's tags (and caption #hashtags) pick its station, with "also fits" alternatives and a manual override | `src/lib/tagRouting.ts`, `src/components/post/` |
 | Ranking: learns from watch time, completions, skips, likes and shares | `src/services/ranking/` |
-| Station bar: pinned stations along the bottom, **More** opens every station (search, pin up to 8) | `src/components/stations/` |
+| Welcome flow on first open: intro, a Human only (filter out AI) demo, dial practice, create account / log in | `src/app/welcome.tsx`, `src/components/onboarding/` |
+| Test lab: practice dial with random targets, every haptic, the sounds, the Human only demo | `src/app/lab.tsx` (open it from your avatar) |
+| Account page: profile, Test lab, replay welcome, log out | `src/app/me.tsx` |
 | Human Only toggle + Human badge | `src/lib/human.ts`, `src/components/ui/HumanOnlyToggle.tsx` |
 | Like / comment count / share, creator, caption | `src/components/feed/ActionRail.tsx` |
 | Post: record with the in-app camera or upload, pick a station, add a caption | `src/app/post.tsx`, `src/components/post/` |
@@ -42,11 +44,11 @@ All haptics go through `src/lib/haptics.ts`:
 | Moment | Feel |
 | --- | --- |
 | Dial passes a station | selection tick (+ click sound) |
-| Dial locks onto a station / station bar jump | rigid impact |
+| Dial locks onto a station | rigid impact |
 | Swipe to the next video | soft impact |
 | Like (button or double tap) | medium impact |
 | Human Only toggle | medium impact |
-| Station pinned / video posted / recording stopped | success notification |
+| Dial practice target hit / account created / video posted / recording stopped | success notification |
 | Recording starts | heavy impact |
 | Taps (pause, share, buttons) | light impact |
 
@@ -86,15 +88,15 @@ npm run serve:web   # serves dist on $PORT (default 3000)
 ```
 src/
   app/            routes (expo-router): feed (index), post (modal)
-  components/     feed/, dial/, stations/, post/, ui/
+  components/     feed/, dial/, onboarding/, post/, ui/
   data/           stations + mock creators/videos
   lib/            haptics, sounds, the human rule, formatting
   services/       the backend seam
-    types.ts      VideoService, LikeService, SignalService, PreferencesService, MediaStore
+    types.ts      AuthService, VideoService, LikeService, SignalService, PreferencesService, MediaStore
     ranking/      taste profile + ranker (pure functions, portable to a server)
     mock/         current implementations (in-memory + AsyncStorage + local files)
     index.ts      picks which implementations the app uses
-  state/          FreqProvider (station, Human only, pinned stations, likes, mute), feed + tuner hooks
+  state/          FreqProvider (account, station, Human only, likes, mute), feed + tuner hooks
 ```
 
 ### Adding a real backend (e.g. Supabase)
@@ -105,7 +107,7 @@ The UI only uses the interfaces in `src/services/types.ts`. To move to Supabase:
 2. Switch the factories in `src/services/index.ts`.
 3. Store `origin` server-side and only set `camera` from the app's recording flow. A client-side flag can be faked, so the real backend should verify it (for example with signed upload tokens issued only to the in-app camera).
 
-Preferences (station, pinned stations, Human only) can stay device-local. Move `rankFeed` and the taste profile to the server so ranking can use real view counts and the whole catalogue.
+Swap `services/mock/localAuth.ts` for Supabase Auth: accounts are device-only for now (only a salted SHA-256 of the password is stored). Preferences (station, Human only) can stay device-local. Move `rankFeed` and the taste profile to the server so ranking can use real view counts and the whole catalogue.
 
 ## Notes and limits
 

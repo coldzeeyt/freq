@@ -37,12 +37,13 @@ interface Props {
   /** The dial sits bottom-right: the rail stacks above it, the caption beside it. */
   railBottom: number;
   infoRight: number;
+  infoBottom: number;
   showStation: boolean;
   onDuration: (videoId: string, seconds: number) => void;
 }
 
 export const VideoCard = memo(function VideoCard(props: Props) {
-  const { video, height, isActive, shouldLoad, railBottom, infoRight, showStation } = props;
+  const { video, height, isActive, shouldLoad, railBottom, infoRight, infoBottom, showStation } = props;
   const { likedIds, toggleLike } = useFreq();
   const [userPaused, setUserPaused] = useState(false);
   const [wasActive, setWasActive] = useState(isActive);
@@ -119,7 +120,7 @@ export const VideoCard = memo(function VideoCard(props: Props) {
         </View>
       </GestureDetector>
 
-      <View style={[styles.info, { right: infoRight }]} pointerEvents="none">
+      <View style={[styles.info, { right: infoRight, bottom: infoBottom }]} pointerEvents="none">
         {showStation && (
           <Text style={styles.stationTag}>
             {station.frequency.toFixed(1)} {station.name}
@@ -229,7 +230,7 @@ const styles = StyleSheet.create({
   errorText: { color: colors.textDim, fontFamily: fonts.mono, fontSize: 12 },
   pauseIcon: { position: 'absolute', top: '43%', alignSelf: 'center' },
   burst: { position: 'absolute', width: 96, height: 96 },
-  info: { position: 'absolute', left: 16, bottom: 16, gap: 5 },
+  info: { position: 'absolute', left: 16, gap: 5 },
   stationTag: { color: colors.signal, fontFamily: fonts.mono, fontSize: 11, ...shadow },
   creatorRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   handle: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: 15, ...shadow },

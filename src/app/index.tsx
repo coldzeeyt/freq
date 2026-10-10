@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useFocusEffect } from 'expo-router';
+import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -9,30 +9,25 @@ import { BandDisplay } from '@/components/dial/BandDisplay';
 import { StaticOverlay } from '@/components/dial/StaticOverlay';
 import { TuningDial } from '@/components/dial/TuningDial';
 import { VideoFeed } from '@/components/feed/VideoFeed';
-import { StationBar } from '@/components/stations/StationBar';
-import { StationSheet } from '@/components/stations/StationSheet';
+import { Avatar } from '@/components/ui/Avatar';
 import { HumanOnlyToggle } from '@/components/ui/HumanOnlyToggle';
 import { useToast } from '@/components/ui/Toast';
 import { getStation, STATIONS, stationIndex } from '@/data/stations';
 import { haptics } from '@/lib/haptics';
-import { services } from '@/services';
-import { MAX_PINNED, useFreq } from '@/state/FreqProvider';
+import { useFreq } from '@/state/FreqProvider';
 import { useStationFeed } from '@/state/useStationFeed';
 import { useTuner } from '@/state/useTuner';
 import { colors, fonts } from '@/theme';
-import type { StationId } from '@/types/models';
 
 const DIAL = 92;
 const DIAL_MARGIN = 10;
 
 export default function FeedScreen() {
-  const { stationId, humanOnly, muted, hydrated, pinned, setStation, setMuted, setHumanOnly, togglePin } = useFreq();
+  const { stationId, humanOnly, muted, hydrated, account, me, setStation, setMuted, setHumanOnly } = useFreq();
   const videos = useStationFeed(stationId, humanOnly);
   const tuner = useTuner(stationId, setStation);
   const toast = useToast();
   const insets = useSafeAreaInsets();
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [counts, setCounts] = useState<Record<StationId, number>>({});
   const [focused, setFocused] = useState(true);
 
   useFocusEffect(
@@ -42,20 +37,16 @@ export default function FeedScreen() {
     }, []),
   );
 
-  useEffect(() => {
-    services.videos.countByStation(humanOnly).then(setCounts);
-  }, [humanOnly, sheetOpen]);
-
   const station = getStation(stationId);
   const displayed = tuner.previewIndex !== null ? STATIONS[tuner.previewIndex] : station;
 
-  // ← / → tune on desktop browsers.
+  // ← / → turn the dial on desktop browsers.
   const { tuneTo } = tuner;
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || sheetOpen) return;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || !focused) return;
       const delta = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
       if (!delta) return;
       e.preventDefault();
@@ -64,7 +55,7 @@ export default function FeedScreen() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [stationId, tuneTo, sheetOpen]);
+  }, [stationId, tuneTo, focused]);
 
   const toggleHumanOnly = (on: boolean) => {
     haptics.toggle();
@@ -72,17 +63,7 @@ export default function FeedScreen() {
     toast(on ? 'Human only: camera recordings and verified creators' : 'Showing everything');
   };
 
-  const onTogglePin = (id: StationId) => {
-    const s = getStation(id);
-    const wasPinned = pinned.includes(id);
-    if (!togglePin(id)) {
-      haptics.warning();
-      toast(`The bar holds ${MAX_PINNED}. Unpin one first.`);
-      return;
-    }
-    haptics.success();
-    toast(wasPinned ? `Unpinned ${s.name}` : `Pinned ${s.name}`);
-  };
+  if (hydrated && !account) return <Redirect href="/welcome" />;
 
   return (
     <View style={styles.screen}>
@@ -91,9 +72,10 @@ export default function FeedScreen() {
           videos={hydrated ? videos : null}
           feedKey={`${stationId}-${humanOnly}`}
           muted={muted}
-          holdPlayback={tuner.tuning || !focused || sheetOpen}
-          railBottom={DIAL + DIAL_MARGIN * 2 + 4}
+          holdPlayback={tuner.tuning || !focused}
+          railBottom={DIAL + DIAL_MARGIN * 2 + insets.bottom + 4}
           infoRight={DIAL + DIAL_MARGIN * 2}
+          infoBottom={insets.bottom + 18}
           showStation={stationId === 'all'}
           emptyMessage={
             humanOnly
@@ -132,6 +114,16 @@ export default function FeedScreen() {
               <Pressable
                 onPress={() => {
                   haptics.tap();
+                  router.push('/me');
+                }}
+                hitSlop={8}
+                accessibilityLabel="Your account"
+              >
+                <Avatar creator={me} size={34} />
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  haptics.tap();
                   router.push('/post');
                 }}
                 style={[styles.iconButton, styles.postButton]}
@@ -153,7 +145,7 @@ export default function FeedScreen() {
           )}
         </View>
 
-        <View style={styles.dial}>
+        <View style={[styles.dial, { bottom: DIAL_MARGIN + insets.bottom }]}>
           <TuningDial
             count={STATIONS.length}
             index={stationIndex(stationId)}
@@ -166,27 +158,6 @@ export default function FeedScreen() {
         </View>
       </View>
 
-      <StationBar
-        pinned={pinned}
-        current={stationId}
-        previewing={tuner.previewIndex !== null ? STATIONS[tuner.previewIndex].id : null}
-        onSelect={tuner.tuneTo}
-        onMore={() => {
-          haptics.tap();
-          setSheetOpen(true);
-        }}
-        bottomInset={insets.bottom}
-      />
-
-      <StationSheet
-        open={sheetOpen}
-        current={stationId}
-        pinned={pinned}
-        counts={counts}
-        onClose={() => setSheetOpen(false)}
-        onSelect={tuner.tuneTo}
-        onTogglePin={onTogglePin}
-      />
     </View>
   );
 }
@@ -214,5 +185,5 @@ const styles = StyleSheet.create({
   postButton: { backgroundColor: colors.signal, borderColor: colors.signal },
   soundHint: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start' },
   soundHintText: { color: colors.textDim, fontFamily: fonts.mono, fontSize: 11 },
-  dial: { position: 'absolute', right: DIAL_MARGIN, bottom: DIAL_MARGIN },
+  dial: { position: 'absolute', right: DIAL_MARGIN },
 });

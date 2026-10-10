@@ -34,7 +34,10 @@ export default function RootLayout() {
               <StatusBar style="light" />
               <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
                 <Stack.Screen name="index" />
+                <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
                 <Stack.Screen name="post" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+                <Stack.Screen name="me" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+                <Stack.Screen name="lab" options={{ animation: 'slide_from_right' }} />
               </Stack>
             </ToastProvider>
           </FreqProvider>
